@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="pi@elissapi:22 (3)">
+    <serverData>
+      <paths name="pi@elissapi">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="pi@elissapi:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="home/pi/behav" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="pi@elissapi:22 (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/behavior" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="pi@elissapi:22 (3)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/pycharm_project_764" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>
