@@ -66,7 +66,6 @@ def scp(host, filename, destination, user, password, timeout=30, bg_run=False):
     child.sendline(password)
     child.expect(pexpect.EOF)
     child.close()
-
     return child.exitstatus
 
 
@@ -88,7 +87,6 @@ def perform(task):
     try:
         task.start()
         task.structure(task)
-        print('perform function')
     except KeyboardInterrupt:
         task.interrupted()
         raise KeyboardInterrupt
@@ -182,8 +180,8 @@ class Session:
 
 class Port:
     def __init__(self, name, dist_info):
-        durations = {1: .01,
-                     2: .0069,
+        durations = {1: .0145,
+                     2: .0085,
                      3: .01}
         pins = {1: [4, 27, 17, 9],
                 2: [18, 24, 23, 11]}
@@ -194,9 +192,13 @@ class Port:
         # self.ir_lick_pin = ir_lick_pin
         # self.sol_pin = sol_pin
         GPIO.setup(self.led_pin, GPIO.OUT)
+        GPIO.output(self.led_pin, GPIO.LOW)
         GPIO.setup(self.sol_pin, GPIO.OUT)
+        GPIO.output(self.sol_pin, GPIO.LOW)
         GPIO.setup(self.ir_head_pin, GPIO.IN)
         GPIO.setup(self.ir_lick_pin, GPIO.IN)
+        print(f'Port {self.name} head status: {GPIO.input(self.ir_head_pin)}')
+        print(f'Port {self.name} lick status: {GPIO.input(self.ir_lick_pin)}')
         self.head_status = 0
         self.lick_status = 0
         self.sol = False
@@ -211,6 +213,7 @@ class Port:
         print(str(name) + ' dur=' + str(self.base_duration))
         self.available = False
         self.licked = True
+        self.led_stay = False
 
     def sol_on(self):
         GPIO.output(self.sol_pin, GPIO.HIGH)
@@ -232,7 +235,7 @@ class Port:
         return False
 
     def led_cleanup(self):
-        if self.led and self.led_on_time + self.led_duration < time.time():
+        if self.led and self.led_on_time + self.led_duration < time.time() and not self.led_stay:
             duration = time.time() - self.led_on_time
             GPIO.output(self.led_pin, GPIO.LOW)
             self.led = False
@@ -262,11 +265,12 @@ class Port:
 
 
 class Task:
-    def __init__(self, session, name='blank', structure=None, ports=None, limit='trials', maximum=None,
-                 distributions=None):
+    def __init__(self, session, name='blank', structure=None, ports=None, limit='trials',
+                 maximum=None, training=False, forced_trials=False):
         print('Starting task: %s' % name)
         self.structure = structure
-        self.ports = ports
+        self.port_dict = ports
+        self.ports = ports.values()
         # self.ports = initialize_ports(ports, distributions)
         self.session = session
         self.name = name
@@ -285,6 +289,8 @@ class Task:
         self.reward_count = 0
         self.last_report = 0
         self.report_interval = 5  # Seconds
+        self.training = training
+        self.forced_trials = forced_trials
 
     def start(self):
         self.task_start_time = time.time()
@@ -299,7 +305,7 @@ class Task:
     def end(self):
         self.phase = 'setup'
         self.trial_number = 'nan'
-        self.sol_cleanup([port.base_duration for port in self.ports])
+        self.sol_cleanup()
         self.log('nan', 0, 'task')
 
     def interrupted(self):
@@ -318,7 +324,7 @@ class Task:
         new_string = ','.join(
             [self.name, str(task_timestamp),
              str(self.trial_number), str(trial_timestamp),
-             self.phase, str(port_name), str(start), key])
+             str(self.phase), str(port_name), str(start), key])
         if key in ['task', 'trial']:
             if start:
                 GPIO.output(self.session.sync_pins[key], GPIO.HIGH)
@@ -406,7 +412,7 @@ class Task:
             # print('%i rewards in %im %is' % (
             #     int(self.reward_count), int(task_time // 60), int(task_time % 60)))
             print('%i rewards in %s' % (
-                int(self.reward_count), str(datetime.timedelta(seconds=task_time))[3:7]))
+                int(self.reward_count), str(datetime.timedelta(seconds=task_time))[2:7]))
             self.last_report = time.time()
 
 

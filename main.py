@@ -36,37 +36,53 @@ def give_up_forgo(session, reward_level, starting_prob, session_length, fixed_ti
     session.start([task1])
 
 
-def cued_forgo(session, reward_level, starting_prob, session_length, training=False):
+def cued_forgo(session, reward_level, starting_prob, session_length, training=False, forced_trials=False):
     print(reward_level)
     print(starting_prob)
     print(session_length)
-    exp_dist = {'distribution': exp_decreasing,
-                'cumulative': reward_level,
-                'starting_probability': starting_prob}
-    rates = [1, .8, .6, .4, .2]
-    random.shuffle(rates)
+    task_structure = cued_forgo_task
+
+    if training:
+        task_name = 'training_cued_forgo'
+        print('cued forgo training')
+    else:
+        task_name = 'cued_forgo'
+        print('cued forgo')
+
+    if forced_trials:
+        task_name = task_name + '_forced'
+        print('forced trials included')
+
+    rates = [.8, .4, .6, 1]
+    # random.shuffle(rates)
     background_dist = {'distribution': 'background',
                        'rates': rates,
-                       'duration': 10}
+                       'duration': 10,
+                       'port_num': 2}
     print(background_dist['rates'])
-    dists = [exp_dist, background_dist]
-    # dists = [background_dist, exp_dist]
-    port_1 = Port(1, dist_info=dists[0])
-    port_2 = Port(2, dist_info=dists[1])
-    # port_1 = Port(1, distribution=exp_decreasing, dist_args=[reward_level, starting_prob])
-    # port_2 = Port(2, distribution='background', dist_args=[[1, .8, .6, .4, .2], 10])
-    task1 = Task(session, name='cued_forgo', structure=cued_forgo_task, ports=[port_1, port_2],
-                 maximum=session_length, limit='time')
+    exp_dist = {'distribution': exp_decreasing,
+                'cumulative': reward_level,
+                'starting_probability': starting_prob,
+                'port_num': 1}
+    ports = {'exp': Port(exp_dist['port_num'], dist_info=exp_dist),
+             'background': Port(background_dist['port_num'], dist_info=background_dist)}
+    task1 = Task(session, name=task_name, structure=task_structure, ports=ports,
+                 maximum=session_length, limit='time', training=training, forced_trials=forced_trials)
     session.start([task1])
 
 
-def main(mouse, to_run):
+def main(mouse, to_run, training=False, forced_trials=False):
+    cumulative = 3
+    start_prob = 1
+    session_time = 20
     mouse_settings = {
-        'testmouse': [5, 1, 10],
-        'ES011': [5, 1, 10],  # reward level, starting prop, session time, [intervals].
-        'ES012': [5, 1, 10],  # reward level, starting prop, session time, [intervals].
-        'ES013': [5, 1, 10],  # reward level, starting prop, session time, [intervals].
-        'ES014': [5, 1, 10],  # reward level, starting prop, session time, [intervals].
+        'testmouse': [cumulative, start_prob, session_time],
+        'ES015': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES016': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES017': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES018': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES019': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES020': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
     }
 
     if mouse not in mouse_settings.keys():
@@ -74,7 +90,7 @@ def main(mouse, to_run):
     session = Session(mouse)  # Start a new session for the mouse
 
     try:
-        to_run(session, *mouse_settings[mouse])  # Run the task
+        to_run(session, *mouse_settings[mouse], training=training, forced_trials=forced_trials)  # Run the task
         session.smooth_finish = True
         print('smooth finish')
     except KeyboardInterrupt:  # Catch if the task is stopped via ctrl-C or the stop button
@@ -84,4 +100,9 @@ def main(mouse, to_run):
 
 
 if __name__ == "__main__":
-    main('testmouse', cued_forgo)
+    # main('testmouse', cued_forgo, training=False, forced_trials=True)
+    main('ES017', cued_forgo, training=False, forced_trials=True)
+
+    # scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@rebekahpi:\home\pi
+    # sudo chmod u+w -r stand_alone
+

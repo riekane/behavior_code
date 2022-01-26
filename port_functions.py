@@ -5,6 +5,70 @@ import RPi.GPIO as GPIO
 import random
 
 
+def rate_set():
+    rates = [
+        [1, .8, .6, .4],
+        [1, .8, .4, .6],
+        [1, .6, .8, .4],
+        [1, .6, .4, .8],
+        [1, .4, .8, .6],
+        [1, .4, .6, .8],
+
+        [.8, 1, .6, .4],
+        [.8, 1, .4, .6],
+        [.8, .6, 1, .4],
+        [.8, .6, .4, 1],
+        [.8, .4, 1, .6],
+        [.8, .4, .6, 1],
+
+        [.6, 1, .8, .4],
+        [.6, 1, .4, .8],
+        [.6, .8, 1, .4],
+        [.6, .8, .4, 1],
+        [.6, .4, 1, .8],
+        [.6, .4, .8, 1],
+
+        [.4, 1, .8, .6],
+        [.4, 1, .6, .8],
+        [.4, .8, 1, .6],
+        [.4, .8, .6, 1],
+        [.4, .6, 1, .8],
+        [.4, .6, .8, 1],
+    ]
+    shuffled_rates = [
+        [.8, .6, .4, 1],  # ES015
+        [1, .8, .6, .4],
+        [.6, .4, 1, .8],
+        [.4, 1, .8, .6],
+
+        [.4, 1, .6, .8],  # ES016
+        [.8, .6, 1, .4],
+        [1, .8, .4, .6],
+        [.6, .4, .8, 1],
+
+        [1, .6, .8, .4],  # ES017
+        [.6, 1, .4, .8],
+        [.8, .4, .6, 1],
+        [.4, .8, 1, .6],
+
+        [.6, 1, .8, .4],  # ES019
+        [.4, .8, .6, 1],
+        [.8, .4, 1, .6],
+        [1, .6, .4, .8],
+
+        [1, .4, .8, .6],  # ES020
+        [.6, .8, .4, 1],
+        [.4, .6, 1, .8],
+        [.8, 1, .6, .4],
+
+        [.8, 1, .4, .6],
+        [.4, .6, .8, 1],
+        [.6, .8, 1, .4],
+        [1, .4, .6, .8],
+
+    ]
+
+
 def test_led(ports, repeats=5):
     for port in ports:
         for _ in range(repeats):
@@ -39,17 +103,20 @@ def test(ports, functions):
         test_sol(ports)
 
 
-def empty_sol(ports):  # Don't use with 24V solenoids, they'll overheat
+def empty_sol(ports, repeats=10000, interval=.1):  # Don't use with 24V solenoids, they'll overheat
     try:
-        for port in ports:
-            port.sol_on()
-        sleep(3000)
+        for _ in range(repeats):
+            for port in ports:
+                port.sol_on()
+                sleep(port.base_duration)
+                port.sol_off()
+                sleep(interval)
     finally:
         for port in ports:
             port.sol_off()
 
 
-def test_sol(ports, repeats=1000, interval=.1, one_at_a_time=False):
+def test_sol(ports, repeats=100, interval=.1, one_at_a_time=False):
     if one_at_a_time:
         for port in ports:
             for _ in range(repeats):
@@ -69,23 +136,27 @@ def test_sol(ports, repeats=1000, interval=.1, one_at_a_time=False):
 def main():
     GPIO.setmode(GPIO.BCM)
     ports = []
-    exp_dict = {'distribution': exp_decreasing,
+    exp_dist = {'distribution': exp_decreasing,
                 'cumulative': 5,
                 'staring_probability': 1}
-    background_dict = {'distribution': 'background',
+    background_dist = {'distribution': 'background',
                        'rates': random.shuffle([1, .8, .6, .4, .2]),
                        'duration': 10}
-    dists = [exp_dict, background_dict]
-    # dists = [background_dict, exp_dict]
-    ports.append(Port(1, dist_info=dists[0]))
-    ports.append(Port(2, dist_info=dists[1]))
+    # dists = [exp_dist, background_dist]
+    # ports.append(Port(1, dist_info=dists[0]))
+    # ports.append(Port(2, dist_info=dists[1]))
+    port_dict = {
+        'exp': Port(1, dist_info=exp_dist),
+        # 'background': Port(2, dist_info=background_dist)
+    }
+    ports = port_dict.values()
 
     try:
         # test(ports, ['ir'])
         # test(ports, ['ir', 'led', 'sol'])
-        test(ports, ['led'])
-        # test(ports, ['sol'])
-        # empty_sol(ports)  # Dont use with 24V solenoids
+        # test(ports, ['led'])
+        test(ports, ['sol'])
+        # empty_sol(ports)
     except KeyboardInterrupt:
         pass
     finally:
