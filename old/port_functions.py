@@ -35,6 +35,19 @@ def rate_set():
         [.4, .6, 1, .8],
         [.4, .6, .8, 1],
     ]
+    shuffled_blocks = [
+        [2, 1, 0, 3],   # ES023
+        [3, 2, 1, 0],
+        [1, 0, 3, 2],
+        [0, 3, 2, 1],
+
+        [0, 3, 1, 2],   # ES021
+        [2, 1, 3, 0],
+        [3, 2, 0, 1],
+        [1, 0, 2, 3],
+        [],
+        [],
+    ]
     shuffled_rates = [
         [.8, .6, .4, 1],  # ES015
         [1, .8, .6, .4],
@@ -146,8 +159,8 @@ def main():
     # ports.append(Port(1, dist_info=dists[0]))
     # ports.append(Port(2, dist_info=dists[1]))
     port_dict = {
-        'exp': Port(1, dist_info=exp_dist),
-        # 'background': Port(2, dist_info=background_dist)
+        # 'exp': Port(1, dist_info=exp_dist),
+        'background': Port(2, dist_info=background_dist)
     }
     ports = port_dict.values()
 

@@ -62,7 +62,6 @@ def give_up_task(task_shell, step_size=.1):
                         task_shell.reward_count += 1
 
 
-
 def give_up_forgo_task(task_shell, step_size=.1):
     num_ports = 2  # The number of ports used in the task, do not change
     task_shell.check_number_of_ports(num_ports)
@@ -280,12 +279,22 @@ def cued_forgo_task(task_shell, step_size=.1):
     forced = False
     choice = 'free'
     current_time = time.time()
+    cycle_count = 10000
+    cycle_time = np.zeros([cycle_count])
+    cycle_num = 0
+    cycle_timer = time.time()
     for port in task_shell.ports:
         if port.dist_info['distribution'] == 'background':
             task_shell.phase = check_rate(task_shell, port)
 
     # This loops until all the trials are complete
     while task_shell.condition():
+        for port in task_shell.ports:
+            if port.dist_info['distribution'] == exp_decreasing:
+                port.available = exp_available or exp_taken
+            elif port.dist_info['distribution'] == 'background':
+                port.available = background_available or exp_taken
+
         task_shell.sol_cleanup()
         task_shell.led_cleanup()
         task_shell.check_time()  # print out the current time and number of trials and rewards
@@ -294,7 +303,8 @@ def cued_forgo_task(task_shell, step_size=.1):
         for port in task_shell.ports:
             for change, event in zip([port.head_status_change(), port.lick_status_change()], ['head', 'lick']):
                 if change == 1:  # beam break
-                    task_shell.log(port.name, 1, event)  # Log the event
+                    if start:
+                        task_shell.log(port.name, 1, event)  # Log the event
                     if event == 'head':
                         if port.dist_info['distribution'] == exp_decreasing and exp_available:
                             print(choice)
@@ -309,10 +319,12 @@ def cued_forgo_task(task_shell, step_size=.1):
                         elif port.dist_info['distribution'] == 'background':
                             background_start_time = time.time()
                             if not start:
+                                task_shell.start()
                                 task_shell.trial_number = 1
                                 task_shell.start_trial(port_name=port.name)
                                 start = True
                                 trial_start_time = time.time()
+                                task_shell.log(port.name, 1, event)  # Log the event
                                 print('starting task...')
                             if exp_taken:
                                 background_available = True
@@ -326,7 +338,8 @@ def cued_forgo_task(task_shell, step_size=.1):
                     elif event == 'lick':
                         port.licked = True
                 elif change == -1:  # beam un-break
-                    task_shell.log(port.name, 0, event)  # Log the event
+                    if start:
+                        task_shell.log(port.name, 0, event)  # Log the event
                     if port.dist_info['distribution'] == 'background' and event == 'head':
                         background_time += time.time() - background_start_time
 
@@ -359,8 +372,8 @@ def cued_forgo_task(task_shell, step_size=.1):
                         background_rewards += 1
                     if background_time + current_time - background_start_time > port.dist_info['duration']:
                         print('exp option available')
-                        port.led_on()
-                        task_shell.log(port.name, 1, 'LED')
+                        # port.led_on()
+                        # task_shell.log(port.name, 1, 'LED')
                         exp_available = True
                         background_time = 0
                         background_rewards = 0
@@ -377,7 +390,7 @@ def cued_forgo_task(task_shell, step_size=.1):
                                 background_available = False
                                 task_shell.log(port.name, 1, 'forced_switch')
                                 print('forced switch')
-                                port.led_stay = True
+                                # port.led_stay = True
                                 choice = 'forced'
                             else:
                                 task_shell.log(port.name, 1, 'free_choice')
@@ -403,6 +416,97 @@ def cued_forgo_task(task_shell, step_size=.1):
                                 task_shell.log(port.name, 1, 'reward')
                                 print(print_string + ' (rewarded)')
                                 task_shell.reward_count += 1
+        # cycle_time[cycle_num] = time.time() - cycle_timer
+        # cycle_num += 1
+        # if cycle_num == cycle_count:
+        #     print(
+        #         f' cycle mean: {np.mean(cycle_time)}, cycle max: {np.max(cycle_time)}, cycle min: {np.min(cycle_time)}')
+        #     cycle_num = 0
+        # cycle_timer = time.time()
+
+
+def check_block(task_shell, port):
+    block = int((time.time() - task_shell.task_start_time) //
+                (task_shell.max_time / len(port.dist_info['blocks'])))
+    block = len(port.dist_info['blocks']) - 1 if block >= len(port.dist_info['blocks']) else block
+    return port.dist_info['blocks'][block]
+
+
+def check_params(phase, port):
+    cumulative = port.dist_info['cumulative']
+    starting = port.dist_info['starting']
+    hi = port.dist_info['hi']
+    lo = port.dist_info['lo']
+    values = {
+        'lo_lo': [lo, lo],
+        'lo_hi': [lo, hi],
+        'hi_lo': [hi, lo],
+        'hi_hi': [hi, hi]
+    }
+    multiplier = values[phase][port.name - 1]
+    return cumulative * multiplier, starting * multiplier
+
+
+def give_up_blocked_task(task_shell, step_size=.1):
+    num_ports = 2  # The number of ports used in the task, do not change
+    task_shell.check_number_of_ports(num_ports)
+
+    current_port = None
+    previous_reward_check = 0
+    licked = True
+
+    # This loops until all the trials are complete
+    while task_shell.condition():
+        task_shell.sol_cleanup()
+        task_shell.check_time()
+
+        # This controls the task flow as the mouse moves in and out of ports
+        for port in task_shell.ports:
+            for change, event in zip([port.head_status_change(), port.lick_status_change()], ['head', 'lick']):
+                if change == 1:
+                    if event == 'head':
+                        print(str(time.time() - task_shell.task_start_time) + ' port ' + str(port.name) + ' entry')
+                        if not current_port:
+                            task_shell.trial_number = 1
+                            task_shell.phase = check_block(task_shell, port)
+                            task_shell.start_trial(port_name=port.name)
+                        elif port.name != current_port:  # check only when entering a new trial
+                            task_shell.end_trial(port_name=current_port)
+                            new_phase = check_block(task_shell, port)
+                            if task_shell.phase != new_phase:
+                                print(f'{task_shell.phase} -> {new_phase}')
+                                task_shell.phase = new_phase
+                            if task_shell.condition():
+                                task_shell.start_trial(port_name=port.name)
+                            if not task_shell.condition():
+                                licked = False
+                                break
+                            previous_reward_check = 0
+                            licked = True
+                        current_port = port.name
+                    if event == 'lick':
+                        licked = True
+                    task_shell.log(port.name, 1, event)
+                elif change == -1:
+                    task_shell.log(port.name, 0, event)
+
+        # This controls reward delivery
+        for port in task_shell.ports:
+            if port.head_status == 1 and licked:
+                trial_time = time.time() - task_shell.trial_start_time
+                if trial_time > previous_reward_check + step_size:
+                    previous_reward_check = trial_time
+                    density_function = port.dist_info['distribution']
+                    cumulative, starting = check_params(task_shell.phase, port)
+                    prob = density_function(trial_time, cumulative=cumulative, starting=starting) * step_size
+                    task_shell.log(port.name, prob, 'probability')
+                    print_string = 'port ' + str(port.name) + ' P(reward) = ' + str(prob)
+                    if prob > random.random():
+                        port.sol_on()
+                        licked = False
+                        task_shell.log(port.name, 1, 'reward')
+                        print(print_string + ' (rewarded)')
+                        task_shell.reward_count += 1
 
 
 def generic_task(task_shell, step_size=.1):

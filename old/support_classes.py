@@ -45,7 +45,8 @@ def ssh(host, cmd, user, password, timeout=30, bg_run=False):
         options += ' -f'
 
     ssh_cmd = 'ssh %s@%s %s "%s"' % (user, host, options, cmd)
-    child = pexpect.spawnu(ssh_cmd, timeout=timeout)  # spawnu for Python 3
+    # print(ssh_cmd)
+    child = pexpect.spawnu(ssh_cmd, timeout=timeout)
     child.expect(['[Pp]assword: '])
     child.sendline(password)
     child.expect(pexpect.EOF)
@@ -85,7 +86,7 @@ def sync_stream(self):
 
 def perform(task):
     try:
-        task.start()
+        task.initialize()
         task.structure(task)
     except KeyboardInterrupt:
         task.interrupted()
@@ -95,8 +96,11 @@ def perform(task):
 
 class Session:
     def __init__(self, mouse):
-        self.ip = '10.203.138.100'
+        self.ip = '10.203.111.198'
+        # self.ip = '10.203.138.100'
         # self.ip = '10.203.137.141'
+        # error with 0: re.compile('[Pp]assword: ') means you need to update the ip address. open command prompt and
+        # type ipconfig/all then press enter. Find the ip address starting with 10 and update it here
         self.user = 'Elissa'
         self.password = 'shuler'
         self.mouse = mouse
@@ -179,9 +183,9 @@ class Session:
 
 
 class Port:
-    def __init__(self, name, dist_info):
+    def __init__(self, name, dist_info, duration=None):
         durations = {1: .0145,
-                     2: .0085,
+                     2: .0090,
                      3: .01}
         pins = {1: [4, 27, 17, 9],
                 2: [18, 24, 23, 11]}
@@ -208,7 +212,10 @@ class Port:
         # self.dist_args = dist_args
         self.sol_opened_time = None
         self.led_on_time = None
-        self.base_duration = durations[name]
+        if duration:
+            self.base_duration = duration
+        else:
+            self.base_duration = durations[name]
         self.led_duration = 1
         print(str(name) + ' dur=' + str(self.base_duration))
         self.available = False
@@ -292,12 +299,15 @@ class Task:
         self.training = training
         self.forced_trials = forced_trials
 
-    def start(self):
+    def initialize(self):
         self.task_start_time = time.time()
-        self.log('nan', 1, 'task')
         for port in self.ports:
             port.head_status = GPIO.input(port.ir_head_pin)
             port.lick_status = GPIO.input(port.ir_lick_pin)
+
+    def start(self):
+        self.task_start_time = time.time()
+        self.log('nan', 1, 'task')
         self.trial_start_time = time.time()
         self.trial_number = 0
         # self.check_video()
@@ -363,20 +373,17 @@ class Task:
         for port in self.ports:
             closed = port.sol_cleanup()
             if closed:
-                self.log(port.name, closed, 'sol_duration')
+                self.log(port.name, 0, 'reward')
 
     def led_cleanup(self):
         for port in self.ports:
-            closed = port.led_cleanup()
-            if closed:
-                self.log(port.name, closed, 'LED_duration')
-
-    # old version
-    # def sol_cleanup(self, open_durations):
-    #     for port, open_duration in zip(self.ports, open_durations):
-    #         closed = port.sol_cleanup(open_duration)  # Returns false or the duration it was open for
-    #         if closed:
-    #             self.log(port.name, closed, 'sol_duration')
+            if port.available == port.led:
+                if port.available:
+                    port.led_off()
+                    self.log(port.name, 0, 'LED')
+                else:
+                    port.led_on()
+                    self.log(port.name, 1, 'LED')
 
     def check_buttons(self, button_pad):
         button_presses = button_pad.presses()

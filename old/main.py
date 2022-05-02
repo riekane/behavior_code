@@ -53,11 +53,14 @@ def cued_forgo(session, reward_level, starting_prob, session_length, training=Fa
         task_name = task_name + '_forced'
         print('forced trials included')
 
-    rates = [.8, .4, .6, 1]
-    # random.shuffle(rates)
+    rates1 = [.4, .8, 1, .6]
+    rates2 = [.4, .8, 1, .6]
+    rates3 = [.4, .8, 1, .6]
+    [random.shuffle(r) for r in [rates1, rates2, rates3]]
+    rates = rates1 + rates2 + rates3
     background_dist = {'distribution': 'background',
                        'rates': rates,
-                       'duration': 10,
+                       'duration': 5,
                        'port_num': 2}
     print(background_dist['rates'])
     exp_dist = {'distribution': exp_decreasing,
@@ -71,18 +74,43 @@ def cued_forgo(session, reward_level, starting_prob, session_length, training=Fa
     session.start([task1])
 
 
+def give_up_blocked(session, reward_level, starting_prob, session_length, training=False, forced_trials=False):
+    task_structure = give_up_blocked_task
+    task_name = 'give_up_blocked'
+
+    blocks = ['hi_hi', 'hi_lo', 'lo_hi', 'lo_lo']
+    # order = [1, 0, 2, 3]
+    # blocks = [blocks[i] for i in order]
+    random.shuffle(blocks)
+    print(blocks)
+    exp_dist = {'distribution': exp_decreasing,
+                'blocks': blocks,
+                'cumulative': 4,
+                'starting': 1,
+                'hi': 1,
+                'lo': .8}
+    ports = {'right': Port(1, dist_info=exp_dist),
+             'left': Port(2, dist_info=exp_dist)}
+    task1 = Task(session, name=task_name, structure=task_structure, ports=ports,
+                 maximum=session_length, limit='time', training=training, forced_trials=forced_trials)
+    session.start([task1])
+
+
 def main(mouse, to_run, training=False, forced_trials=False):
     cumulative = 3
     start_prob = 1
-    session_time = 20
+    session_time = 24
     mouse_settings = {
         'testmouse': [cumulative, start_prob, session_time],
-        'ES015': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES016': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES017': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES018': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES019': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES020': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES024': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES025': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES026': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES027': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES028': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES029': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        # 'ES021': [0, 0, session_time],  # skip, skip, session time
+        # 'ES022': [0, 0, session_time],  # skip, skip, session time
+        # 'ES023': [0, 0, session_time],  # skip, skip, session time
     }
 
     if mouse not in mouse_settings.keys():
@@ -100,9 +128,10 @@ def main(mouse, to_run, training=False, forced_trials=False):
 
 
 if __name__ == "__main__":
-    # main('testmouse', cued_forgo, training=False, forced_trials=True)
-    main('ES017', cued_forgo, training=False, forced_trials=True)
+    main('testmouse', cued_forgo, training=False, forced_trials=True)
+    # main('ES017', cued_forgo, training=False, forced_trials=True)
+    # main('testmouse', give_up_blocked)
+    # main('ES023', give_up_blocked)
 
     # scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@rebekahpi:\home\pi
     # sudo chmod u+w -r stand_alone
-
