@@ -127,8 +127,8 @@ def main(mouse, to_run, training=False, forced_trials=False):
 
 if __name__ == "__main__":
     # main('testmouse', cued_forgo, training=False, forced_trials=True)
-    main('ES029', cued_forgo, training=False, forced_trials=True)
-    # main('ES027', cued_forgo, training=False, forced_trials=True)
+    # main('ES024', cued_forgo, training=False, forced_trials=True)
+    main('ES027', cued_forgo, training=False, forced_trials=True)
     # main('testmouse', give_up_blocked)
 
     # scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@rebekahpi:\home\pi

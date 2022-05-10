@@ -8,7 +8,7 @@ from time import sleep
 def save_change():
     with open('durations.pkl', 'wb') as f:
         durations = {
-            1: 0.017,
+            1: 0.016,
             2: 0.01
         }
         pickle.dump(durations, f)
