@@ -26,7 +26,7 @@ def calibrate(port):
 def increase(port):
     with open('durations.pkl', 'rb') as f:
         durations = pickle.load(f)
-    durations[port] += .001
+    durations[port] += .0005
     print(f'increasing port {port} to {durations[port]}')
     with open('durations.pkl', 'wb') as f:
         pickle.dump(durations, f)
@@ -35,7 +35,7 @@ def increase(port):
 def decrease(port):
     with open('durations.pkl', 'rb') as f:
         durations = pickle.load(f)
-    durations[port] += .001
+    durations[port] -= .0005
     print(f'decreasing port {port} to {durations[port]}')
     with open('durations.pkl', 'wb') as f:
         pickle.dump(durations, f)

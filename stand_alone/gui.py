@@ -30,8 +30,8 @@ class Gui:
             [['ES024', 'ES025', 'ES026'],
              ['ES027', 'ES028', 'ES029'],
              ['reset', 'check_ir', 'testmouse'],
-             ['-.001', self.calibration_text[1], '+.001'],
-             ['-.001', self.calibration_text[2], '+.001']])
+             ['-.0005', self.calibration_text[1], '+.0005'],
+             ['-.0005', self.calibration_text[2], '+.0005']])
         mouse_functions = np.array(
             [[partial(self.run_behavior, buttons[i, j]) for j in range(buttons.shape[1])] for i in range(2)])
         control_funtions = np.array([[self.reset, self.check_ir, partial(self.run_behavior, 'testmouse')],
@@ -77,7 +77,7 @@ class Gui:
 
     def run_behavior(self, mouse):
         print(f"running behavior for {mouse}")
-        main(mouse, cued_forgo, training=False, forced_trials=True)
+        main(mouse, cued_forgo, forgo=False, forced_trials=True)
 
     def calibrate(self, port):
         print(f'calibrating port {port}')
@@ -90,14 +90,14 @@ class Gui:
             sleep(.1)
 
     def increase(self, port):
-        self.durations[port] = np.around(self.durations[port] + .001, decimals=5)
+        self.durations[port] = np.around(self.durations[port] + .0005, decimals=5)
         self.calibration_text[port].set(f'Calibrate port {port} {self.durations[port]}')
         print(f'increasing port {port} to {self.durations[port]}')
         with open('durations.pkl', 'wb') as f:
             pickle.dump(self.durations, f)
 
     def decrease(self, port):
-        self.durations[port] = np.around(self.durations[port] - .001, decimals=5)
+        self.durations[port] = np.around(self.durations[port] - .0005, decimals=5)
         self.calibration_text[port].set(f'Calibrate port {port} {self.durations[port]}')
         print(f'decreasing port {port} to {self.durations[port]}')
         with open('durations.pkl', 'wb') as f:

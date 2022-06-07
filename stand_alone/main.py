@@ -36,18 +36,18 @@ def give_up_forgo(session, reward_level, starting_prob, session_length, fixed_ti
     session.start([task1])
 
 
-def cued_forgo(session, reward_level, starting_prob, session_length, training=False, forced_trials=False):
+def cued_forgo(session, reward_level, starting_prob, session_length, forgo=False, forced_trials=False):
     print(reward_level)
     print(starting_prob)
     print(session_length)
     task_structure = cued_forgo_task
 
-    if training:
-        task_name = 'training_cued_forgo'
-        print('cued forgo training')
-    else:
+    if forgo:
         task_name = 'cued_forgo'
         print('cued forgo')
+    else:
+        task_name = 'cued_no_forgo'
+        print('cued bg without forgo option')
 
     if forced_trials:
         task_name = task_name + '_forced'
@@ -68,11 +68,11 @@ def cued_forgo(session, reward_level, starting_prob, session_length, training=Fa
     ports = {'exp': Port(exp_dist['port_num'], dist_info=exp_dist),
              'background': Port(background_dist['port_num'], dist_info=background_dist)}
     task1 = Task(session, name=task_name, structure=task_structure, ports=ports,
-                 maximum=session_length, limit='time', training=training, forced_trials=forced_trials)
+                 maximum=session_length, limit='time', forgo=forgo, forced_trials=forced_trials)
     session.start([task1])
 
 
-def give_up_blocked(session, reward_level, starting_prob, session_length, training=False, forced_trials=False):
+def give_up_blocked(session, reward_level, starting_prob, session_length, forgo=True, forced_trials=False):
     task_structure = give_up_blocked_task
     task_name = 'give_up_blocked'
 
@@ -90,12 +90,12 @@ def give_up_blocked(session, reward_level, starting_prob, session_length, traini
     ports = {'right': Port(1, dist_info=exp_dist),
              'left': Port(2, dist_info=exp_dist)}
     task1 = Task(session, name=task_name, structure=task_structure, ports=ports,
-                 maximum=session_length, limit='time', training=training, forced_trials=forced_trials)
+                 maximum=session_length, limit='time', forgo=forgo, forced_trials=forced_trials)
     session.start([task1])
 
 
-def main(mouse, to_run, training=False, forced_trials=False):
-    cumulative = 3
+def main(mouse, to_run, forgo=False, forced_trials=False):
+    cumulative = 8
     start_prob = 1
     session_time = 18
     mouse_settings = {
@@ -116,7 +116,7 @@ def main(mouse, to_run, training=False, forced_trials=False):
     session = Session(mouse)  # Start a new session for the mouse
 
     try:
-        to_run(session, *mouse_settings[mouse], training=training, forced_trials=forced_trials)  # Run the task
+        to_run(session, *mouse_settings[mouse], forgo=forgo, forced_trials=forced_trials)  # Run the task
         session.smooth_finish = True
         print('smooth finish')
     except KeyboardInterrupt:  # Catch if the task is stopped via ctrl-C or the stop button
@@ -126,10 +126,8 @@ def main(mouse, to_run, training=False, forced_trials=False):
 
 
 if __name__ == "__main__":
-    # main('testmouse', cued_forgo, training=False, forced_trials=True)
-    # main('ES024', cued_forgo, training=False, forced_trials=True)
-    main('ES027', cued_forgo, training=False, forced_trials=True)
+    # main('testmouse', cued_forgo, forgo=False, forced_trials=True)
+    main('ES024', cued_forgo, forgo=False, forced_trials=True)
+    # main('ES027', cued_ forgo, forgo=False, forced_trials=True)
     # main('testmouse', give_up_blocked)
 
-    # scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@rebekahpi:\home\pi
-    # sudo chmod u+w -r stand_alone

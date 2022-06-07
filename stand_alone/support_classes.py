@@ -282,7 +282,7 @@ class Port:
 
 class Task:
     def __init__(self, session, name='blank', structure=None, ports=None, limit='trials',
-                 maximum=None, training=False, forced_trials=False):
+                 maximum=None, forgo=True, forced_trials=False):
         print('Starting task: %s' % name)
         self.structure = structure
         self.port_dict = ports
@@ -305,7 +305,7 @@ class Task:
         self.reward_count = 0
         self.last_report = 0
         self.report_interval = 5  # Seconds
-        self.training = training
+        self.forgo = forgo
         self.forced_trials = forced_trials
 
     def initialize(self):

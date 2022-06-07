@@ -260,7 +260,7 @@ def check_rate(task_shell, port):
 
 
 def cued_forgo_task(task_shell, step_size=.1):
-    training = task_shell.training
+    forgo = task_shell.forgo
     forced_trials = task_shell.forced_trials
     num_ports = 2  # The number of ports used in the task, do not change
     task_shell.check_number_of_ports(num_ports)
@@ -283,9 +283,12 @@ def cued_forgo_task(task_shell, step_size=.1):
     cycle_time = np.zeros([cycle_count])
     cycle_num = 0
     cycle_timer = time.time()
+
     for port in task_shell.ports:
         if port.dist_info['distribution'] == 'background':
             task_shell.phase = check_rate(task_shell, port)
+            rates = np.unique(port.dist_info['rates'])
+            rates.sort()
 
     # This loops until all the trials are complete
     while task_shell.condition():
@@ -345,9 +348,6 @@ def cued_forgo_task(task_shell, step_size=.1):
 
         # This controls reward delivery
         if start:
-            # if not training and exp_available and (time.time() - task_shell.trial_start_time) > travel_time_limit:
-            #     exp_available = False
-            #     print('skipped exp option')
             for port in task_shell.ports:
                 if port.dist_info['distribution'] == 'background' and port.head_status == 1 and background_available:
                     current_time = time.time()
@@ -374,29 +374,38 @@ def cued_forgo_task(task_shell, step_size=.1):
                         print('exp option available')
                         # port.led_on()
                         # task_shell.log(port.name, 1, 'LED')
-                        exp_available = True
                         background_time = 0
                         background_rewards = 0
                         background_start_time = time.time()
                         trial_start_time = time.time()
-                        task_shell.phase = check_rate(task_shell, port)
-                        if forced:
-                            task_shell.log(port.name, 1, 'forgo')
-                        if training:
-                            background_available = False
-                        task_shell.next_trial(end_port_name=port.name, start_port_name=port.name)
-                        if forced_trials:
+                        if forgo:
+                            task_shell.phase = check_rate(task_shell, port)
+                            exp_available = True
                             if forced:
+                                task_shell.log(port.name, 1, 'forgo')
+                            task_shell.next_trial(end_port_name=port.name, start_port_name=port.name)
+                            if forced_trials:
+                                if forced:
+                                    background_available = False
+                                    task_shell.log(port.name, 1, 'forced_switch')
+                                    print('forced switch')
+                                    # port.led_stay = True
+                                    choice = 'forced'
+                                else:
+                                    task_shell.log(port.name, 1, 'free_choice')
+                                    print('free choice')
+                                    forced = True
+                                    choice = 'free'
+                        if not forgo:
+                            task_shell.next_trial(end_port_name=port.name, start_port_name=port.name)
+                            if task_shell.phase == rates[1] or forced:
+                                exp_available = True
                                 background_available = False
                                 task_shell.log(port.name, 1, 'forced_switch')
                                 print('forced switch')
-                                # port.led_stay = True
                                 choice = 'forced'
                             else:
-                                task_shell.log(port.name, 1, 'free_choice')
-                                print('free choice')
                                 forced = True
-                                choice = 'free'
 
                 if port.dist_info['distribution'] == exp_decreasing:
                     if exp_taken and (time.time() - exp_start_time) // step_size > bin_num:
