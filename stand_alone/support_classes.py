@@ -6,6 +6,8 @@ from timescapes import *
 import pexpect
 import pickle
 import tempfile
+import smbus
+import numpy as np
 
 
 class Error(Exception):
@@ -103,6 +105,7 @@ class Session:
         # error with 0: re.compile('[Pp]assword: ') means you need to update the ip address. open command prompt and
         # type ipconfig/all then press enter. Find the ip address starting with 10 and update it here
         self.user = 'Elissa'
+        self.host_name = os.uname()[1]
         self.password = 'shuler'
         self.mouse = mouse
         self.data_write_path = "/data/" + self.mouse
@@ -135,7 +138,7 @@ class Session:
             GPIO.setup(val, GPIO.OUT)
             GPIO.output(val, GPIO.LOW)
 
-        info_fields = 'mouse,date,time,task,port1_info,port2_info'
+        info_fields = 'mouse,date,time,task,port1_info,port2_info,box'
         data_fields = 'session_time,task,task_time,trial,trial_time,phase,port,value,key'
 
         self.f.write(info_fields + '\n')
@@ -143,6 +146,7 @@ class Session:
             info = [self.mouse, self.datetime[0:10], self.datetime[11:19], task.name]
             for port in task.ports:
                 info = info + [str(port.dist_info)]
+            info.append(self.host_name)
             info_string = ','.join(info)
             self.f.write(info_string + '\n')
         self.f.write('\n'.join(['# Data', data_fields, '']))
@@ -430,6 +434,41 @@ class Task:
             print('%i rewards in %s' % (
                 int(self.reward_count), str(datetime.timedelta(seconds=task_time))[2:7]))
             self.last_report = time.time()
+
+
+class Expander:
+    def __init__(self, input_pins_a=None, input_pins_b=None):
+        self.bus = smbus.SMBus(1)
+        self.DEVICE = 0x20  # Device address (A0-A2)
+        self.SETUP_REGISTER = [0x00, 0x01]  # Pin direction register
+        self.INPUT_REGISTER = [0x12, 0x13]  # Register for inputs on A
+        self.OUTPUT_REGISTER = [0x14, 0x15]  # Register for inputs on A
+        self.output_pin_status = np.zeros([2, 8])
+        self.input_pin_status = np.zeros([2, 8])
+        self.input_pins = [input_pins_a, input_pins_b]
+        for side in [0, 1]:
+            self.bus.write_byte_data(self.DEVICE, self.SETUP_REGISTER[side], self.to_hex(self.input_pins[side]))
+
+    def on(self, side, pin):
+        self.output_pin_status[side, pin] = 1
+        self.refresh_pins()
+
+    def off(self, side, pin):
+        self.output_pin_status[side, pin] = 0
+        self.refresh_pins()
+
+    def refresh_pins(self):
+        for side in [0, 1]:
+            self.bus.write_byte_data(self.DEVICE, self.OUTPUT_REGISTER[side],
+                                     self.to_hex(np.where(self.output_pin_status[side])))
+            input_status = self.bus.read_byte_data(self.DEVICE, self.INPUT_REGISTER[side])
+            print(input_status)
+
+    def to_hex(self, num_list=None):
+        if not num_list:
+            return 0
+        else:
+            return np.sum([2 ** num for num in num_list])
 
 
 class ButtonPad:

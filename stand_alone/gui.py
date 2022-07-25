@@ -11,7 +11,7 @@ from main import *
 
 
 # scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@elissapi1:\home\pi\behavior
-# scp C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone\tasks.py pi@elissapi1:\home\pi\behavior\stand_alone
+# scp C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone\gui.py pi@elissapi1:\home\pi\behavior\stand_alone
 
 class Gui:
     def __init__(self):
@@ -27,13 +27,14 @@ class Gui:
         self.calibration_text[2].set(f'Calibrate port 2 {self.durations[2]}')
         myFont = font.Font(size=16)
         buttons = np.array(
-            [['ES024', 'ES025', 'ES026'],
-             ['ES027', 'ES028', 'ES029'],
+            [['ES024', 'ES027', 'ES030'],
+             ['ES025', 'ES028', 'ES031'],
+             ['ES026', 'ES029', 'ES032'],
              ['reset', 'check_ir', 'testmouse'],
              ['-.0005', self.calibration_text[1], '+.0005'],
              ['-.0005', self.calibration_text[2], '+.0005']])
         mouse_functions = np.array(
-            [[partial(self.run_behavior, buttons[i, j]) for j in range(buttons.shape[1])] for i in range(2)])
+            [[partial(self.run_behavior, buttons[i, j]) for j in range(buttons.shape[1])] for i in range(3)])
         control_funtions = np.array([[self.reset, self.check_ir, partial(self.run_behavior, 'testmouse')],
                                      [partial(self.decrease, 1), partial(self.calibrate, 1), partial(self.increase, 1)],
                                      [partial(self.decrease, 2), partial(self.calibrate, 2),
@@ -50,7 +51,7 @@ class Gui:
                     borderwidth=1
                 )
                 frame.grid(row=i, column=j, sticky="nsew")
-                if i in [3, 4] and j == 1:
+                if i in [4, 5] and j == 1:
                     button = tk.Button(
                         textvariable=buttons[i, j],
                         font=myFont,
@@ -125,46 +126,6 @@ class Gui:
 
 def run_gui():
     app = Gui()
-    # buttons = np.array(
-    #     [['ES024', 'ES025', 'ES026'],
-    #      ['ES027', 'ES028', 'ES029'],
-    #      ['Calibrate Left', '+.001', '-.001'],
-    #      ['Calibrate Right', '+.001', '-.001'],
-    #      ['reset', 'stop', 'party']])
-    #
-    # mouse_functions = np.array(
-    #     [[partial(run_behavior, buttons[i, j]) for j in range(buttons.shape[1])] for i in range(2)])
-    # control_funtions = np.array([[partial(calibrate, 1), partial(increase, 1), partial(decrease, 1)],
-    #                              [partial(calibrate, 2), partial(increase, 2), partial(decrease, 2)],
-    #                              [reset, stop, party]])
-    # functions = np.concatenate([mouse_functions, control_funtions])
-    #
-    # window = tk.Tk()
-    # window.title("Behavior")
-    # button_list = []
-    # for i in range(buttons.shape[0]):
-    #     window.rowconfigure(i, weight=1, minsize=50)
-    #     for j in range(buttons.shape[1]):
-    #         window.columnconfigure(i, weight=1, minsize=75)
-    #         frame = tk.Frame(
-    #             master=window,
-    #             # relief=tk.RAISED,
-    #             borderwidth=1
-    #         )
-    #         frame.grid(row=i, column=j, sticky="nsew")
-    #         button = tk.Button(
-    #             text=buttons[i, j],
-    #             width=30,
-    #             height=6,
-    #             bg="black",
-    #             fg="blue",
-    #             master=frame,
-    #             command=functions[i, j])
-    #
-    #         button.pack(fill=tk.BOTH, expand=True)
-    #         button_list.append(button)
-    #
-    # window.mainloop()
 
 
 if __name__ == '__main__':

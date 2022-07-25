@@ -36,7 +36,7 @@ def give_up_forgo(session, reward_level, starting_prob, session_length, fixed_ti
     session.start([task1])
 
 
-def cued_forgo(session, reward_level, starting_prob, session_length, forgo=False, forced_trials=False):
+def cued_forgo(session, reward_level, starting_prob, session_length, forgo=False, forced_trials=True):
     print(reward_level)
     print(starting_prob)
     print(session_length)
@@ -106,9 +106,9 @@ def main(mouse, to_run, forgo=False, forced_trials=False):
         'ES027': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
         'ES028': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
         'ES029': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        # 'ES021': [0, 0, session_time],  # skip, skip, session time
-        # 'ES022': [0, 0, session_time],  # skip, skip, session time
-        # 'ES023': [0, 0, session_time],  # skip, skip, session time
+        'ES030': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES031': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'ES032': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
     }
 
     if mouse not in mouse_settings.keys():
@@ -127,7 +127,7 @@ def main(mouse, to_run, forgo=False, forced_trials=False):
 
 if __name__ == "__main__":
     # main('testmouse', cued_forgo, forgo=False, forced_trials=True)
-    main('ES024', cued_forgo, forgo=False, forced_trials=True)
-    # main('ES027', cued_ forgo, forgo=False, forced_trials=True)
+    # main('ES024', cued_forgo, forgo=False, forced_trials=True)
+    main('ES030', cued_forgo, forgo=False, forced_trials=True)
     # main('testmouse', give_up_blocked)
 

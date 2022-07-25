@@ -3,6 +3,16 @@ import RPi.GPIO as GPIO
 from support_classes import *
 from timescapes import *
 from time import sleep
+import smbus
+import numpy as np
+
+DEVICE = 0x20  # Device address (A0-A2)
+SETUP_A = 0x00  # Pin direction register
+SETUP_B = 0x01  # Pin direction register
+INPUT_A = 0x12  # Register for inputs on A
+INPUT_B = 0x13  # Register for inputs on B
+OUTPUT_A = 0x14  # Register for outputs on A
+OUTPUT_B = 0x15  # Register for outputs on B
 
 
 def led_test():
@@ -19,6 +29,17 @@ def led_test():
     sleep(5)
     GPIO.output(21, GPIO.LOW)
     GPIO.cleanup()
+
+
+def extra_gpio_test():
+    expander = Expander()
+    for i in range(2):
+        for j in range(8):
+            print(i)
+            print(j)
+            expander.on(i, j)
+            sleep(1)
+            expander.off(i, j)
 
 
 def save_change():
@@ -62,3 +83,4 @@ if __name__ == '__main__':
     save_change()
     test_sol()
     # led_test()
+    # extra_gpio_test()
