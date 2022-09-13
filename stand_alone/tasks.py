@@ -1,6 +1,5 @@
 import random
 import time
-from support_classes import ButtonPad
 from timescapes import *
 
 
@@ -330,6 +329,7 @@ def cued_forgo_task(task_shell, step_size=.1):
                                 task_shell.log(port.name, 1, event)  # Log the event
                                 print('starting task...')
                             if exp_taken:
+                                task_shell.next_trial(end_port_name=1, start_port_name=2)
                                 background_available = True
                                 exp_taken = False
                                 background_start_time = time.time()
@@ -397,7 +397,6 @@ def cued_forgo_task(task_shell, step_size=.1):
                                     forced = True
                                     choice = 'free'
                         if not forgo:
-                            task_shell.next_trial(end_port_name=port.name, start_port_name=port.name)
                             if task_shell.phase == rates[1] or forced:
                                 exp_available = True
                                 background_available = False

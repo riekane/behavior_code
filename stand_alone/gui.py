@@ -10,8 +10,8 @@ from time import sleep
 from main import *
 
 
-# scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@elissapi1:\home\pi\behavior
-# scp C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone\gui.py pi@elissapi1:\home\pi\behavior\stand_alone
+# scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@elissapi0:\home\pi\behavior
+# scp C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone\scp_rescue.py pi@elissapi1:\home\pi\behavior
 
 class Gui:
     def __init__(self):
@@ -122,7 +122,6 @@ class Gui:
                         print(f'Port {port.name} {event} {action}')
         GPIO.cleanup()
         print('Done')
-
 
 def run_gui():
     app = Gui()

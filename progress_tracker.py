@@ -3,13 +3,14 @@ from tkinter import *
 import time
 from os import walk
 import pandas as pd
-from csv import DictReader
+from csv import DictReader, reader
+import numpy as np
 
 
 def get_today_filepaths():
     file_paths = []
     for root, dirs, filenames in walk(os.path.join(os.getcwd(), 'data')):
-        if len(dirs) == 0:
+        if len(dirs) == 0 and root[-5:-3] == 'ES':
             mouse = root[-5:]
             for f in filenames:
                 if f[5:15] == time.strftime("%Y-%m-%d"):
@@ -20,14 +21,27 @@ def get_today_filepaths():
 def gen_data(file_paths):
     d = {}
     for f in file_paths:
+        if f[:5] == 'mouse':
+            print('stop')
         path = os.path.join(os.getcwd(), 'data', f)
         data = pd.read_csv(path, na_values=['None'], skiprows=3)
+        with open(path, 'r') as file:
+            r = reader(file)
+            info_keys = next(r)
+            info_values = next(r)
+        starts = np.where([True if s[0] == '{' else False for s in info_values])[0][::-1]
+        ends = np.where([True if s[-1] == '}' else False for s in info_values])[0][::-1]
+        for i in range(len(starts)):
+            info_values = info_values[:starts[i]] + [",".join(info_values[starts[i]:ends[i]+1])] + info_values[ends[i]+1:]
+        info = dict(zip(info_keys, info_values))
         num_reward = len(data[(data.key == 'reward') & (data.value == 1)])
         mouse = f[:5]
+
+        reward_string = f'{num_reward}({info["box"][-1]})'
         if mouse in d.keys():
-            d[mouse].append(num_reward)
+            d[mouse].append(reward_string)
         else:
-            d[mouse] = [num_reward]
+            d[mouse] = [reward_string]
     return d
 
 

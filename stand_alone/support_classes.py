@@ -56,15 +56,20 @@ def ssh(host, cmd, user, password, timeout=30, bg_run=False):
     child.close()
 
 
-def scp(host, filename, destination, user, password, timeout=30, bg_run=False):
+def scp(host, filename, destination, user, password, timeout=30, bg_run=False, recursive=False, cmd=False):
     """Scp's to a host using the supplied credentials and executes a command.
     Throws an exception if the command doesn't return 0.
     bgrun: run command in the background"""
 
     options = '-q -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oPubkeyAuthentication=no'
+    if recursive:
+        options += ' -r'
     if bg_run:
         options += ' -f'
-    scp_cmd = 'scp %s %s %s@%s:%s' % (options, filename, user, host, destination + filename)
+    scp_cmd = 'scp %s %s %s@%s:%s' % (options, filename, user, host, os.path.join(destination, filename))
+    print(scp_cmd)
+    if cmd:
+        return scp_cmd
     child = pexpect.spawnu(scp_cmd, timeout=timeout)  # spawnu for Python 3
     child.expect(['[Pp]assword: '])
     child.sendline(password)
@@ -81,10 +86,13 @@ def sync_stream(self):
                'lick1': 20,
                'lick2': 21,
                'sol1': 5,
-               'sol2': 6}
+               'sol2': 6,
+               'led1': 6,
+               'led2': 6
+               }
     for val in pin_map.values():
         GPIO.setup(val, GPIO.OUT)
-        GPIO.output(self.sol_pin, GPIO.LOW)
+        GPIO.output(val, GPIO.LOW)
 
 
 def perform(task):
@@ -99,7 +107,8 @@ def perform(task):
 
 class Session:
     def __init__(self, mouse):
-        self.ip = '10.203.111.198'
+        # self.ip = '10.203.111.198'
+        self.ip = '192.168.137.1'
         # self.ip = '10.203.138.100'
         # self.ip = '10.203.137.141'
         # error with 0: re.compile('[Pp]assword: ') means you need to update the ip address. open command prompt and
@@ -123,15 +132,18 @@ class Session:
         os.system('sudo chmod o+w ' + self.filename)
         self.f = open(self.filename, 'w')
         self.start_time = None
-        self.sync_pins = {'session': 25,
-                          'task': 8,
+        self.sync_pins = {'LED1': 25,
+                          'LED2': 8,
                           'trial': 7,
                           'head1': 16,
                           'head2': 20,
                           'lick1': 21,
                           'lick2': 5,
-                          'sol1': 6,
-                          'sol2': 13}
+                          'reward1': 6,
+                          'reward2': 13}
+        self.camera_pin = 10
+        GPIO.setup(self.camera_pin, GPIO.OUT)
+        GPIO.output(self.camera_pin, GPIO.LOW)
 
     def start(self, task_list):
         for val in self.sync_pins.values():
@@ -152,7 +164,6 @@ class Session:
         self.f.write('\n'.join(['# Data', data_fields, '']))
 
         self.start_time = time.time()
-        GPIO.output(self.sync_pins['session'], GPIO.HIGH)
         self.log('nan,nan,nan,nan,setup,nan,1,session')
         for task in task_list:
             perform(task)
@@ -164,7 +175,6 @@ class Session:
         self.f.write(new_line)
 
     def end(self):
-        GPIO.output(self.sync_pins['session'], GPIO.LOW)
         self.log('nan,nan,nan,nan,setup,nan,0,session')
         self.f.close()
         os.system('sudo chmod o-w ' + self.filename)
@@ -311,6 +321,10 @@ class Task:
         self.report_interval = 5  # Seconds
         self.forgo = forgo
         self.forced_trials = forced_trials
+        self.frame_rate = 25  # frames per second
+        self.frame_interval = 1 / self.frame_rate
+        self.last_frame = time.time()
+        self.cam_high = False
 
     def initialize(self):
         self.task_start_time = time.time()
@@ -348,22 +362,25 @@ class Task:
             [self.name, str(task_timestamp),
              str(self.trial_number), str(trial_timestamp),
              str(self.phase), str(port_name), str(start), key])
-        if key in ['task', 'trial']:
+        if key in ['trial']:
             if start:
                 GPIO.output(self.session.sync_pins[key], GPIO.HIGH)
             else:
                 GPIO.output(self.session.sync_pins[key], GPIO.LOW)
-        elif key in ['head', 'lick']:
+        elif key in ['head', 'lick', 'LED', 'reward']:
+            if key == 'led':
+                print(self.session.sync_pins[key + str(port_name)])
             if start:
                 GPIO.output(self.session.sync_pins[key + str(port_name)], GPIO.HIGH)
+                if key == 'LED1':
+                    GPIO.output(self.session.sync_pins['trial'], GPIO.LOW)
             else:
                 GPIO.output(self.session.sync_pins[key + str(port_name)], GPIO.LOW)
-                if key == 'head':
-                    GPIO.output(self.session.sync_pins['trial'], GPIO.LOW)
-        elif key == 'reward':
-            GPIO.output(self.session.sync_pins['sol' + str(port_name)], GPIO.HIGH)
-        elif key == 'sol_duration':
-            GPIO.output(self.session.sync_pins['sol' + str(port_name)], GPIO.LOW)
+
+        # elif key == 'sol':
+        #     GPIO.output(self.session.sync_pins['sol' + str(port_name)], GPIO.HIGH)
+        # elif key == 'sol_duration':
+        #     GPIO.output(self.session.sync_pins['sol' + str(port_name)], GPIO.LOW)
         self.session.log(new_string)
 
     def start_trial(self, port_name='nan'):
@@ -429,11 +446,19 @@ class Task:
     def check_time(self):
         if (time.time() - self.last_report) > self.report_interval:
             task_time = time.time() - self.task_start_time
-            # print('%i rewards in %im %is' % (
-            #     int(self.reward_count), int(task_time // 60), int(task_time % 60)))
             print('%i rewards in %s' % (
                 int(self.reward_count), str(datetime.timedelta(seconds=task_time))[2:7]))
             self.last_report = time.time()
+        if (time.time() - self.last_frame) > self.frame_interval:
+            GPIO.output(self.session.camera_pin, GPIO.HIGH)
+            self.last_frame = time.time()
+            self.cam_high = True
+            self.log('nan', 1, 'camera')
+
+        if (time.time() - self.last_frame) > self.frame_interval / 2 and self.cam_high:
+            GPIO.output(self.session.camera_pin, GPIO.LOW)
+            self.cam_high = False
+            self.log('nan', 0, 'camera')
 
 
 class Expander:
@@ -471,14 +496,8 @@ class Expander:
             return np.sum([2 ** num for num in num_list])
 
 
-class ButtonPad:
-    def __init__(self, yellow_pin=18, red_pin=23, green_pin=24):
-        self.pins = [yellow_pin, red_pin, green_pin]
-        [GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) for pin in self.pins]
-        self.status = [0] * len(self.pins)
-
-    def presses(self):
-        current = [GPIO.input(pin) for pin in self.pins]
-        change = [a - b for a, b in zip(current, self.status)]
-        self.status = current
-        return change
+if __name__ == '__main__':
+    expander = Expander()
+    expander.on(0, [2, 3, 6])
+    expander.output_pin_status[1, :-3] = 1
+    expander.refresh_pins()
