@@ -19,11 +19,13 @@ This code repo developed by Elissa Sutlief is used by the Shuler lab to run beha
 
 
 <!-- GETTING STARTED -->
-### Installation
+## Installation
 1. Clone the repo
    ```sh
    git clone https://github.com/github_username/repo_name.git
    ```
+2. Set up remote interpreter on Raspberry Pi
+3. Edit task logic to suit your own experiment
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -40,7 +42,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - elissasutlief@gmail.com
+Elissa Sutlief - elissasutlief@gmail.com
 
 Project Link: [https://github.com/esutlie/behavior_code](https://github.com/esutlie/behavior_code)
 
