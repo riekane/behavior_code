@@ -16,7 +16,7 @@ This code repo developed by Elissa Sutlief is used by the Shuler lab to run beha
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/github_username/repo_name.git
+   git clone https://github.com/esutlie/behavior_code.git
    ```
 2. Set up remote interpreter on Raspberry Pi
 3. Edit task logic to suit your own experiment
