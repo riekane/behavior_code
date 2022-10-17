@@ -2,25 +2,10 @@
 <a name="readme-top"></a>
 
 
-
-<!-- PROJECT SHIELDS -->
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
-
-
-<h3 align="center">project_title</h3>
+<h3 align="center">Behavior Task Control</h3>
 
   <p align="center">
-    project_description
-    <br />
-    <a href="https://github.com/esutlie/behavior_code"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/esutlie/behavior_code">View Demo</a>
+    Manage sensors and task logic for behavioral experiments.
   </p>
 </div>
 
@@ -28,20 +13,9 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
-
 This code repo developed by Elissa Sutlief is used by the Shuler lab to run behavioral tasks. Code is meant to be run on a raspberry pi wired with custom sensors embedded in a behavior box. Edit the logic within the task class to make a custom task. 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-### Built With
-
-* [![Python][Python.js]][Python-url]
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 
 
 <!-- GETTING STARTED -->
