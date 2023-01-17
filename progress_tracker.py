@@ -36,8 +36,8 @@ def gen_data(file_paths):
         info = dict(zip(info_keys, info_values))
         num_reward = len(data[(data.key == 'reward') & (data.value == 1)])
         mouse = f[:5]
-
         reward_string = f'{num_reward}({info["box"][-1]})'
+
         if mouse in d.keys():
             d[mouse].append(reward_string)
         else:

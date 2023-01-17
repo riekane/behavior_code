@@ -559,3 +559,39 @@ def generic_task(task_shell, step_size=.1):
                     if reward_condition:
                         port.sol_on()
                         task_shell.log(port.name, 1, 'reward')
+
+
+def example_task(session_manager):
+    state_variable1 = True
+    state_variable2 = 0
+    start_time = time.time()  # Grabs the time at the beginning of the task
+    max_time = 20 * 60  # Session capped at 20 minutes
+    max_trials = 100  # Session capped at 100 trials
+    trial_number = 0
+    while trial_number < max_trials and time.time() - start_time < max_time:
+        session_manager.clean_up_function1()  # Something to check on every loop. (ex. solenoid duration)
+        sensor_change1 = session_manager.check_sensor1()  # Returns 1 for sensor break, -1 for unbreak, 0 for no change
+        sensor_change2 = session_manager.check_sensor2()
+
+        if sensor_change1 == 1:
+            state_variable1 = True
+            session_manager.log(f'{time.time() - start_time}, {sensor_change1}, sensor1')  # log the sensor change
+        elif sensor_change1 == -1:
+            session_manager.log(f'{time.time() - start_time}, {sensor_change1}, sensor1')  # log the sensor change
+
+        if sensor_change2 == 1:
+            state_variable2 += 1
+            session_manager.log(f'{time.time() - start_time}, {sensor_change2}, sensor2')  # log the sensor change
+        elif sensor_change2 == -1:
+            session_manager.log(f'{time.time() - start_time}, {sensor_change2}, sensor2')  # log the sensor change
+
+        if state_variable1 and state_variable2 > 5:
+            trial_number += 1
+            session_manager.log(f'{time.time() - start_time}, {1}, trial')  # log the trial start
+            state_variable2 = 0
+            session_manager.solenoid.on()
+            session_manager.log(f'{time.time() - start_time}, {1}, reward')  # log the reward delivery
+
+
+
+

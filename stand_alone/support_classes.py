@@ -449,12 +449,12 @@ class Task:
             print('%i rewards in %s' % (
                 int(self.reward_count), str(datetime.timedelta(seconds=task_time))[2:7]))
             self.last_report = time.time()
-        if (time.time() - self.last_frame) > self.frame_interval:
+        if (time.time() - self.last_frame) > self.frame_interval:  # If the square wave period has passed, go high
             GPIO.output(self.session.camera_pin, GPIO.HIGH)
             self.last_frame = time.time()
             self.cam_high = True
             self.log('nan', 1, 'camera')
-
+        # If half the period has passed and it's high, go low
         if (time.time() - self.last_frame) > self.frame_interval / 2 and self.cam_high:
             GPIO.output(self.session.camera_pin, GPIO.LOW)
             self.cam_high = False
