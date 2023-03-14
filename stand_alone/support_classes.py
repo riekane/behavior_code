@@ -108,7 +108,8 @@ def perform(task):
 class Session:
     def __init__(self, mouse):
         # self.ip = '10.203.111.198'
-        self.ip = '192.168.137.1'
+        # self.ip = '192.168.137.1'
+        self.ip = '10.16.79.143'
         # self.ip = '10.203.138.100'
         # self.ip = '10.203.137.141'
         # error with 0: re.compile('[Pp]assword: ') means you need to update the ip address. open command prompt and

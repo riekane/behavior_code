@@ -10,7 +10,7 @@ from time import sleep
 from main import *
 
 
-# scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@elissapi0:\home\pi\behavior
+# scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@elissapi0:\home\pi
 # scp C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone\scp_rescue.py pi@elissapi1:\home\pi\behavior
 
 class Gui:
@@ -30,7 +30,7 @@ class Gui:
             [['ES024', 'ES027', 'ES030'],
              ['ES025', 'ES028', 'ES031'],
              ['ES026', 'ES029', 'ES032'],
-             ['reset', 'check_ir', 'testmouse'],
+             ['check_scp', 'check_ir', 'testmouse'],
              ['-.0005', self.calibration_text[1], '+.0005'],
              ['-.0005', self.calibration_text[2], '+.0005']])
         mouse_functions = np.array(
@@ -105,10 +105,15 @@ class Gui:
             pickle.dump(self.durations, f)
 
     def reset(self):
-        GPIO.setmode(GPIO.BCM)
-        ports = [Port(1, None, duration=.01), Port(2, None, duration=.01)]
-        GPIO.cleanup()
-        print('box reset')
+        session = Session('testmouse')
+        session.start_time = time.time()
+        session.log('test_line')
+        session.smooth_finish = True
+        session.end()
+        # GPIO.setmode(GPIO.BCM)
+        # ports = [Port(1, None, duration=.01), Port(2, None, duration=.01)]
+        # GPIO.cleanup()
+        # print('box reset')
 
     def check_ir(self):
         GPIO.setmode(GPIO.BCM)
