@@ -47,8 +47,8 @@ def ssh(host, cmd, user, password, timeout=30, bg_run=False):
     if bg_run:
         options += ' -f'
 
-    ssh_cmd = 'ssh %s@%s %s "%s"' % (user, host, options, cmd)
-    # print(ssh_cmd)
+    ssh_cmd = 'ssh %s@%s %s \'%s\'' % (user, host, options, cmd)
+    print(ssh_cmd)
     child = pexpect.spawnu(ssh_cmd, timeout=timeout)
     child.expect(['[Pp]assword: '])
     child.sendline(password)
@@ -66,7 +66,7 @@ def scp(host, filename, destination, user, password, timeout=30, bg_run=False, r
         options += ' -r'
     if bg_run:
         options += ' -f'
-    scp_cmd = 'scp %s %s %s@%s:%s' % (options, filename, user, host, os.path.join(destination, filename))
+    scp_cmd = 'scp %s %s %s@%s:\'"%s"\'' % (options, filename, user, host, os.path.join(destination, filename))
     print(scp_cmd)
     if cmd:
         return scp_cmd
@@ -107,22 +107,22 @@ def perform(task):
 
 class Session:
     def __init__(self, mouse):
-        # self.ip = '10.203.111.198'
-        # self.ip = '192.168.137.1'
-        self.ip = '10.16.79.143'
-        # self.ip = '10.203.138.100'
-        # self.ip = '10.203.137.141'
-        # error with 0: re.compile('[Pp]assword: ') means you need to update the ip address. open command prompt and
-        # type ipconfig/all then press enter. Find the ip address starting with 10 and update it here
-        self.user = 'Elissa'
-        self.host_name = os.uname()[1]
+        self.ip = '192.168.137.1'
+        self.user = 'Shichen'
         self.password = 'shuler'
         self.mouse = mouse
+        self.ssh_path = os.path.join('OneDrive - Johns Hopkins', 'ShulerLab', 'behavior_code', 'data', self.mouse)
+        self.data_send_path = os.path.join('C:', 'Users','Shichen', self.ssh_path)
+
+        # error with 0: re.compile('[Pp]assword: ') means you need to update the ip address. open command prompt and
+        # type ipconfig/all then press enter. Find the ip address starting with 10 and update it here
+        # self.user = 'Elissa'
+        self.host_name = os.uname()[1]
         self.data_write_path = "/data/" + self.mouse
         self.datetime = time.strftime("%Y-%m-%d_%H-%M-%S")
         self.filename = "data_" + self.datetime + ".txt"
-        self.ssh_path = 'GoogleDrive/Code/Python/behavior_code/data/' + self.mouse
-        self.data_send_path = 'C:/Users/Elissa/' + self.ssh_path + '/'
+        # self.ssh_path = 'GoogleDrive/Code/Python/behavior_code/data/' + self.mouse
+        # self.data_send_path = 'C:/Users/Elissa/' + self.ssh_path + '/'
         self.halted = False
         self.smooth_finish = False
         GPIO.setmode(GPIO.BCM)
@@ -179,7 +179,7 @@ class Session:
         self.log('nan,nan,nan,nan,setup,nan,0,session')
         self.f.close()
         os.system('sudo chmod o-w ' + self.filename)
-        mkdir_command = 'if not exist %s mkdir %s' % (
+        mkdir_command = 'if not exist "%s" mkdir "%s"' % (
             self.ssh_path.replace('/', '\\'), self.ssh_path.replace('/', '\\'))
         ssh(self.ip, mkdir_command, self.user, self.password)
         if not scp(self.ip, self.filename, self.data_send_path, self.user, self.password):

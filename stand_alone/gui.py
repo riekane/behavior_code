@@ -13,6 +13,9 @@ from main import *
 # scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@elissapi0:\home\pi
 # scp C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone\scp_rescue.py pi@elissapi1:\home\pi\behavior
 
+#scp -r "C:\Users\Shichen\OneDrive - Johns Hopkins\ShulerLab\behavior_code\stand_alone" pi@elissapi1:\home\pi\behavior1
+
+
 class Gui:
     def __init__(self):
         self.root = tk.Tk()
