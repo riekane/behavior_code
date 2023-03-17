@@ -107,22 +107,19 @@ def perform(task):
 
 class Session:
     def __init__(self, mouse):
-        self.ip = '192.168.137.1'
-        self.user = 'Shichen'
-        self.password = 'shuler'
+        self.ip = '10.16.79.143'
         self.mouse = mouse
-        self.ssh_path = os.path.join('OneDrive - Johns Hopkins', 'ShulerLab', 'behavior_code', 'data', self.mouse)
-        self.data_send_path = os.path.join('C:', 'Users','Shichen', self.ssh_path)
-
+        self.user = 'Elissa'
+        self.ssh_path = 'GoogleDrive/Code/Python/behavior_code/data/' + self.mouse
+        self.data_send_path = 'C:/Users/Elissa/' + self.ssh_path + '/'
         # error with 0: re.compile('[Pp]assword: ') means you need to update the ip address. open command prompt and
         # type ipconfig/all then press enter. Find the ip address starting with 10 and update it here
-        # self.user = 'Elissa'
         self.host_name = os.uname()[1]
+        self.password = 'shuler'
         self.data_write_path = "/data/" + self.mouse
         self.datetime = time.strftime("%Y-%m-%d_%H-%M-%S")
         self.filename = "data_" + self.datetime + ".txt"
-        # self.ssh_path = 'GoogleDrive/Code/Python/behavior_code/data/' + self.mouse
-        # self.data_send_path = 'C:/Users/Elissa/' + self.ssh_path + '/'
+
         self.halted = False
         self.smooth_finish = False
         GPIO.setmode(GPIO.BCM)

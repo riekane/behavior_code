@@ -8,6 +8,7 @@ from support_classes import *
 import pickle
 from time import sleep
 from main import *
+import pexpect
 
 
 # scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@elissapi0:\home\pi
