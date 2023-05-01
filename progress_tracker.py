@@ -10,8 +10,8 @@ import numpy as np
 def get_today_filepaths():
     file_paths = []
     for root, dirs, filenames in walk(os.path.join(os.getcwd(), 'data')):
-        if len(dirs) == 0 and root[-5:-3] == 'ES':
-            mouse = root[-5:]
+        if len(dirs) == 0 and os.path.basename(root)[:2] == 'ES':
+            mouse = os.path.basename(root)
             for f in filenames:
                 if f[5:15] == time.strftime("%Y-%m-%d"):
                     file_paths.append(os.path.join(mouse, f))
@@ -35,7 +35,7 @@ def gen_data(file_paths):
             info_values = info_values[:starts[i]] + [",".join(info_values[starts[i]:ends[i]+1])] + info_values[ends[i]+1:]
         info = dict(zip(info_keys, info_values))
         num_reward = len(data[(data.key == 'reward') & (data.value == 1)])
-        mouse = f[:5]
+        mouse = os.path.dirname(f)
         reward_string = f'{num_reward}({info["box"][-1]})'
 
         if mouse in d.keys():

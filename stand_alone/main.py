@@ -72,6 +72,34 @@ def cued_forgo(session, reward_level, starting_prob, session_length, forgo=False
     session.start([task1])
 
 
+def single_reward(session, reward_level, starting_prob, session_length, forgo=False, forced_trials=True):
+    reward_level = 0.5994974874371859  # cumulative for and 8 reward version
+    starting_prob = 0.1301005025125628
+    print(reward_level)
+    print(starting_prob)
+    print(session_length)
+    task_structure = single_reward_task
+
+    task_name = 'single_reward'
+
+    rates = [.4, .8, .4, .8, .4, .8]
+    if np.random.random() > .5:
+        rates.reverse()
+    background_dist = {'distribution': 'background',
+                       'rates': rates,
+                       'duration': 5,
+                       'port_num': 2}
+    print(background_dist['rates'])
+    exp_dist = {'distribution': exp_decreasing,
+                'cumulative': reward_level,
+                'starting_probability': starting_prob,
+                'port_num': 1}
+    ports = {'exp': Port(exp_dist['port_num'], dist_info=exp_dist),
+             'background': Port(background_dist['port_num'], dist_info=background_dist)}
+    task1 = Task(session, name=task_name, structure=task_structure, ports=ports,
+                 maximum=session_length, limit='time')
+    session.start([task1])
+
 def give_up_blocked(session, reward_level, starting_prob, session_length, forgo=True, forced_trials=False):
     task_structure = give_up_blocked_task
     task_name = 'give_up_blocked'
@@ -109,14 +137,16 @@ def main(mouse, to_run, forgo=False, forced_trials=False):
         'ES030': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
         'ES031': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
         'ES032': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
+        'default': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
     }
 
-    if mouse not in mouse_settings.keys():
-        raise MouseSettingsError('This mouse isn\'t defined in the settings')
     session = Session(mouse)  # Start a new session for the mouse
 
     try:
-        to_run(session, *mouse_settings[mouse], forgo=forgo, forced_trials=forced_trials)  # Run the task
+        if mouse not in mouse_settings.keys():
+            to_run(session, *mouse_settings['default'], forgo=forgo, forced_trials=forced_trials)  # Run the task
+        else:
+            to_run(session, *mouse_settings[mouse], forgo=forgo, forced_trials=forced_trials)  # Run the task
         session.smooth_finish = True
         print('smooth finish')
     except KeyboardInterrupt:  # Catch if the task is stopped via ctrl-C or the stop button

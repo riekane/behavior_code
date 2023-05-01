@@ -14,7 +14,7 @@ import pexpect
 # scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@elissapi0:\home\pi
 # scp C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone\scp_rescue.py pi@elissapi1:\home\pi\behavior
 
-#scp -r "C:\Users\Shichen\OneDrive - Johns Hopkins\ShulerLab\behavior_code\stand_alone" pi@elissapi1:\home\pi\behavior1
+# scp -r "C:\Users\Shichen\OneDrive - Johns Hopkins\ShulerLab\behavior_code\stand_alone" pi@elissapi1:\home\pi\behavior1
 
 
 class Gui:
@@ -31,14 +31,13 @@ class Gui:
         self.calibration_text[2].set(f'Calibrate port 2 {self.durations[2]}')
         myFont = font.Font(size=16)
         buttons = np.array(
-            [['ES024', 'ES027', 'ES030'],
-             ['ES025', 'ES028', 'ES031'],
-             ['ES026', 'ES029', 'ES032'],
+            [['ES024', 'ES025', 'ES028'],
+             ['ES024_single', 'ES025_single', 'ES028_single'],
              ['check_scp', 'check_ir', 'testmouse'],
              ['-.0005', self.calibration_text[1], '+.0005'],
              ['-.0005', self.calibration_text[2], '+.0005']])
         mouse_functions = np.array(
-            [[partial(self.run_behavior, buttons[i, j]) for j in range(buttons.shape[1])] for i in range(3)])
+            [[partial(self.run_behavior, buttons[i, j]) for j in range(buttons.shape[1])] for i in range(2)])
         control_funtions = np.array([[self.reset, self.check_ir, partial(self.run_behavior, 'testmouse')],
                                      [partial(self.decrease, 1), partial(self.calibrate, 1), partial(self.increase, 1)],
                                      [partial(self.decrease, 2), partial(self.calibrate, 2),
@@ -81,8 +80,12 @@ class Gui:
         self.root.mainloop()
 
     def run_behavior(self, mouse):
-        print(f"running behavior for {mouse}")
-        main(mouse, cued_forgo, forgo=False, forced_trials=True)
+        if len(mouse) == 5:
+            task = cued_forgo
+        else:
+            task = single_reward
+        print(f"running {task} for {mouse}")
+        main(mouse, task, forgo=False, forced_trials=True)
 
     def calibrate(self, port):
         print(f'calibrating port {port}')
@@ -131,6 +134,7 @@ class Gui:
                         print(f'Port {port.name} {event} {action}')
         GPIO.cleanup()
         print('Done')
+
 
 def run_gui():
     app = Gui()

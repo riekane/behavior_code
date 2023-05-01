@@ -433,6 +433,156 @@ def cued_forgo_task(task_shell, step_size=.1):
         # cycle_timer = time.time()
 
 
+def single_reward_task(task_shell, step_size=.1):
+    num_ports = 2  # The number of ports used in the task, do not change
+    task_shell.check_number_of_ports(num_ports)
+
+    started = False
+    background_start_time = time.time()
+    background_time = 0
+    background_rewards = 0
+    reward_time = 0
+    exp_start_time = None
+    trial_start_time = None
+    exp_available = False
+    exp_taken = False
+    exp_reward = False
+    exp_reward_number = 0
+    exp_reward_target = 8
+    exp_last_reward = time.time()
+    background_available = True
+    background_taken = False
+    choice = 'free'
+    starting = 0
+    cumulative = 0
+
+    for port in task_shell.ports:
+        if port.dist_info['distribution'] == 'background':
+            task_shell.phase = check_rate(task_shell, port)
+            rates = np.unique(port.dist_info['rates'])
+            rates.sort()
+
+    # This loops until all the trials are complete
+    while task_shell.condition():
+        for port in task_shell.ports:
+            if port.dist_info['distribution'] == exp_decreasing:
+                port.available = exp_available or exp_taken or exp_reward
+                starting = port.dist_info['starting_probability']
+                cumulative = port.dist_info['cumulative']
+            elif port.dist_info['distribution'] == 'background':
+                port.available = background_available or background_taken
+
+        task_shell.sol_cleanup()
+        task_shell.led_cleanup()
+        task_shell.check_time()  # print out the current time and number of trials and rewards
+
+        # This controls the task flow as the mouse moves in and out of ports
+        for port in task_shell.ports:
+            for change, event in zip([port.head_status_change(), port.lick_status_change()], ['head', 'lick']):
+                if change == 1:  # beam break
+                    if started:
+                        task_shell.log(port.name, 1, event)  # Log the event
+                    if event == 'head':
+                        if port.dist_info['distribution'] == exp_decreasing and exp_available:
+                            print(choice)
+                            task_shell.log(port.name, 1, choice)
+                            exp_available = False
+                            exp_taken = True
+                            background_available = True
+                            exp_start_time = time.time()
+                            task_shell.port_dict['background'].led_stay = False
+                            task_shell.led_cleanup()
+                        elif port.dist_info['distribution'] == 'background':
+                            background_start_time = time.time()
+                            if not started:
+                                task_shell.start()
+                                task_shell.trial_number = 1
+                                task_shell.start_trial(port_name=port.name)
+                                started = True
+                                background_taken = True
+                                background_available = False
+                                r = np.random.random()
+                                reward_time = exp_decreasing(r, cumulative=cumulative, starting=starting, draw=True)
+
+                                trial_start_time = time.time()
+                                task_shell.log(port.name, 1, event)  # Log the event
+                                print('starting task...')
+                                task_shell.log(port.name, reward_time, 'reward_time')  # Log the event
+
+                            if background_available:
+                                task_shell.next_trial(end_port_name=1, start_port_name=2)
+                                background_available = False
+                                background_taken = True
+                                exp_taken = False
+                                exp_reward = False
+                                exp_reward_number = 0
+                                r = np.random.random()
+                                reward_time = exp_decreasing(r, cumulative=cumulative, starting=starting, draw=True)
+
+                                task_shell.log(port.name, reward_time, 'reward_time')  # Log the event
+                                background_start_time = time.time()
+                                trial_start_time = time.time()
+                                background_time = 0
+                                background_rewards = 0
+                                task_shell.phase = check_rate(task_shell, port)
+                                print('returned to background')
+                    elif event == 'lick':
+                        port.licked = True
+                elif change == -1:  # beam un-break
+                    if started:
+                        task_shell.log(port.name, 0, event)  # Log the event
+                    if port.dist_info['distribution'] == 'background' and event == 'head':
+                        background_time += time.time() - background_start_time
+
+        # This controls reward delivery
+        if started:
+            for port in task_shell.ports:
+                if port.dist_info['distribution'] == 'background' and port.head_status == 1 and background_taken:
+                    current_time = time.time()
+                    interval = 1 / task_shell.phase
+                    num_rewards = 4
+                    if (background_time + current_time - background_start_time) // interval > background_rewards:
+                        background_rewards += 1
+                        if port.licked:
+                            port.sol_on()
+                            task_shell.log(port.name, 1, 'reward')
+                            task_shell.reward_count += 1
+                            print(
+                                f'background reward delivered: {background_time + time.time() - background_start_time}'
+                                f' / {time.time() - trial_start_time}')
+                            port.licked = False
+                        else:
+                            print(f'background reward missed: {background_time + time.time() - background_start_time}'
+                                  f' / {time.time() - trial_start_time}')
+                            task_shell.log(port.name, 1, 'missed_reward')
+                    if background_rewards >= num_rewards:
+                        print('exp option available')
+                        background_time = 0
+                        background_rewards = 0
+                        background_start_time = time.time()
+                        exp_available = True
+                        background_taken = False
+                        task_shell.log(port.name, 1, 'forced_switch')
+                        print('forced switch')
+                        choice = 'forced'
+
+                if port.dist_info['distribution'] == exp_decreasing:
+                    if exp_taken and (
+                            time.time() - exp_start_time) > reward_time and port.head_status == 1 and port.licked:
+                        exp_taken = False
+                        exp_reward = True
+                        task_shell.log(port.name, 1, 'reward_initiate')
+                    if exp_reward and port.head_status == 1 and (time.time() - exp_last_reward) > .1:
+                        port.sol_on()
+                        task_shell.log(port.name, 1, 'reward')
+                        print('reward delivered at ' + str(time.time() - exp_start_time) + ' seconds')
+                        task_shell.reward_count += 1
+                        exp_last_reward = time.time()
+                        exp_reward_number += 1
+                    if exp_reward_number >= exp_reward_target:
+                        exp_reward = False
+
+
 def check_block(task_shell, port):
     block = int((time.time() - task_shell.task_start_time) //
                 (task_shell.max_time / len(port.dist_info['blocks'])))
@@ -591,7 +741,3 @@ def example_task(session_manager):
             state_variable2 = 0
             session_manager.solenoid.on()
             session_manager.log(f'{time.time() - start_time}, {1}, reward')  # log the reward delivery
-
-
-
-

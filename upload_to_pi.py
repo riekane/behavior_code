@@ -1,10 +1,11 @@
 import os
 import paramiko
 
+
 def upload_to_pi(pi_host_name):
     local_path = os.path.join(os.getcwd(), "stand_alone")
     pi_user_name = 'pi'
-    remote_path = '\home\pi'
+    remote_path = '/home/pi'
     password = 'shuler'
     # command = f'scp -r {os.path.join(local_path, "stand_alone")} {pi_user_name}@{pi_host_name}:{remote_path}'
     ssh = paramiko.SSHClient()
@@ -14,8 +15,9 @@ def upload_to_pi(pi_host_name):
 
     [_, _, files] = list(os.walk(local_path))[0]
     for f in files:
-        if f != 'durations.pkl':
-            sftp.put(os.path.join(local_path, f), os.path.join(remote_path, f))
+        if f not in ['durations.pkl', 'desktop.ini']:
+            print(pi_host_name + ' ' + '/'.join([remote_path, 'stand_alone', f]))
+            sftp.put(os.path.join(local_path, f), '/'.join([remote_path, 'stand_alone', f]))
     sftp.close()
     ssh.close()
 
