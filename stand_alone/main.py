@@ -128,15 +128,6 @@ def main(mouse, to_run, forgo=False, forced_trials=False):
     session_time = 18
     mouse_settings = {
         'testmouse': [cumulative, start_prob, session_time],
-        'ES024': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES025': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES026': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES027': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES028': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES029': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES030': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES031': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
-        'ES032': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
         'default': [cumulative, start_prob, session_time],  # reward level, starting prop, session time, [intervals].
     }
 

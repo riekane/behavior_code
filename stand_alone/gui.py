@@ -30,19 +30,26 @@ class Gui:
         self.calibration_text[1].set(f'Calibrate port 1 {self.durations[1]}')
         self.calibration_text[2].set(f'Calibrate port 2 {self.durations[2]}')
         myFont = font.Font(size=16)
+        mouse_rows = 2
+        self.mouse_assignments = {
+            'ES036': single_reward,
+            'ES037': single_reward,
+            'ES038': single_reward,
+            'ES039': cued_forgo,
+            'ES040': cued_forgo,
+        }
         buttons = np.array(
-            [['ES024', 'ES025', 'ES028'],
-             ['ES024_single', 'ES025_single', 'ES028_single'],
+            [['ES036', 'ES037', 'ES038'],
+             ['ES039', 'ES040', 'None'],
              ['check_scp', 'check_ir', 'testmouse'],
              ['-.0005', self.calibration_text[1], '+.0005'],
              ['-.0005', self.calibration_text[2], '+.0005']])
         mouse_functions = np.array(
-            [[partial(self.run_behavior, buttons[i, j]) for j in range(buttons.shape[1])] for i in range(2)])
-        control_funtions = np.array([[self.reset, self.check_ir, partial(self.run_behavior, 'testmouse')],
-                                     [partial(self.decrease, 1), partial(self.calibrate, 1), partial(self.increase, 1)],
-                                     [partial(self.decrease, 2), partial(self.calibrate, 2),
-                                      partial(self.increase, 2)]])
-        functions = np.concatenate([mouse_functions, control_funtions])
+            [[partial(self.run_behavior, buttons[i, j]) for j in range(buttons.shape[1])] for i in range(mouse_rows)])
+        control_func = np.array([[self.reset, self.check_ir, partial(self.run_behavior, 'testmouse')],
+                                 [partial(self.decrease, 1), partial(self.calibrate, 1), partial(self.increase, 1)],
+                                 [partial(self.decrease, 2), partial(self.calibrate, 2), partial(self.increase, 2)]])
+        functions = np.concatenate([mouse_functions, control_func])
         self.button_list = []
         for i in range(buttons.shape[0]):
             self.root.rowconfigure(i, weight=1, minsize=50)
@@ -54,7 +61,7 @@ class Gui:
                     borderwidth=1
                 )
                 frame.grid(row=i, column=j, sticky="nsew")
-                if i in [4, 5] and j == 1:
+                if i in [mouse_rows + 1, mouse_rows + 2] and j == 1:
                     button = tk.Button(
                         textvariable=buttons[i, j],
                         font=myFont,
@@ -80,10 +87,7 @@ class Gui:
         self.root.mainloop()
 
     def run_behavior(self, mouse):
-        if len(mouse) == 5:
-            task = cued_forgo
-        else:
-            task = single_reward
+        task = self.mouse_assignments[mouse]
         print(f"running {task} for {mouse}")
         main(mouse, task, forgo=False, forced_trials=True)
 
