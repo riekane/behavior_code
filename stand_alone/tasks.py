@@ -1,6 +1,10 @@
 import random
 import time
 from timescapes import *
+import tkinter as tk
+import tkinter.font as font
+from threading import Thread
+import datetime
 
 
 def give_up_task(task_shell, step_size=.1):
@@ -259,6 +263,9 @@ def check_rate(task_shell, port):
 
 
 def cued_forgo_task(task_shell, step_size=.1):
+    t1 = Thread(target=stop_button, args=[task_shell])
+    t1.start()
+
     forgo = task_shell.forgo
     forced_trials = task_shell.forced_trials
     num_ports = 2  # The number of ports used in the task, do not change
@@ -431,9 +438,13 @@ def cued_forgo_task(task_shell, step_size=.1):
         #         f' cycle mean: {np.mean(cycle_time)}, cycle max: {np.max(cycle_time)}, cycle min: {np.min(cycle_time)}')
         #     cycle_num = 0
         # cycle_timer = time.time()
+    t1.join()
 
 
 def single_reward_task(task_shell, step_size=.1):
+    t1 = Thread(target=stop_button, args=[task_shell])
+    t1.start()
+
     num_ports = 2  # The number of ports used in the task, do not change
     task_shell.check_number_of_ports(num_ports)
 
@@ -581,6 +592,7 @@ def single_reward_task(task_shell, step_size=.1):
                         exp_reward_number += 1
                     if exp_reward_number >= exp_reward_target:
                         exp_reward = False
+    t1.join()
 
 
 def check_block(task_shell, port):
@@ -741,3 +753,49 @@ def example_task(session_manager):
             state_variable2 = 0
             session_manager.solenoid.on()
             session_manager.log(f'{time.time() - start_time}, {1}, reward')  # log the reward delivery
+
+
+def stop_button(task_shell):
+    app = StopButton(task_shell)
+
+
+class StopButton:
+    def __init__(self, task_shell):
+        self.root = tk.Tk()
+        self.root.geometry("600x400")
+        self.root.title(task_shell.session.mouse)
+        self.task_shell = task_shell
+        self.button = tk.Button(
+            master=self.root,
+            text='Stop Task',
+            width=50,
+            height=10,
+            bg="white",
+            fg="black",
+            font=("Arial", 25),
+            command=self.stop)
+        self.label = tk.Label(self.root, text=f'Time Remaining: '
+                                              f'{str(datetime.timedelta(seconds=task_shell.max_time))[2:7]}\n'
+                                              f'Rewards Collected: 0',
+                              width=50, height=4, font=("Arial", 25))
+        self.label.pack()
+        self.button.pack()
+        self._job = self.root.after(1000, self.check_continue)
+        self.root.mainloop()
+
+    def stop(self):
+        self.task_shell.early_stop = True
+        self.task_shell.session.halted = True
+
+    def check_continue(self):
+        if self.task_shell.limit == 'time':
+            remaining = self.task_shell.max_time - (time.time() - self.task_shell.task_start_time)
+            self.label['text'] = f'Time Remaining: {str(datetime.timedelta(seconds=remaining))[2:7]}\n' \
+                                 f'Rewards Collected: {self.task_shell.reward_count}'
+        if not self.task_shell.condition():
+            if self._job is not None:
+                self.root.after_cancel(self._job)
+                self._job = None
+            self.root.destroy()
+        else:
+            self._job = self.root.after(1000, self.check_continue)

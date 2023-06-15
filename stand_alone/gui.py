@@ -20,16 +20,16 @@ import pexpect
 class Gui:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.geometry("1600x300")
-        self.root.title("Behavior")
+        self.root.geometry('2000x700')
+        self.root.title('BehaviorGui')
 
         with open('durations.pkl', 'rb') as f:
             self.durations = pickle.load(f)
         self.calibration_text = {1: tk.StringVar(),
                                  2: tk.StringVar()}
-        self.calibration_text[1].set(f'Calibrate port 1 {self.durations[1]}')
-        self.calibration_text[2].set(f'Calibrate port 2 {self.durations[2]}')
-        myFont = font.Font(size=16)
+        self.calibration_text[1].set(f'Port 1: {self.durations[1] * 1000}ms ')
+        self.calibration_text[2].set(f'Port 2: {self.durations[2] * 1000}ms')
+        myFont = font.Font(size=30)
         mouse_rows = 2
         self.mouse_assignments = {
             'ES036': single_reward,
@@ -37,13 +37,14 @@ class Gui:
             'ES038': single_reward,
             'ES039': cued_forgo,
             'ES040': cued_forgo,
+            'testmouse': cued_forgo,
         }
         buttons = np.array(
             [['ES036', 'ES037', 'ES038'],
              ['ES039', 'ES040', 'None'],
              ['check_scp', 'check_ir', 'testmouse'],
-             ['-.0005', self.calibration_text[1], '+.0005'],
-             ['-.0005', self.calibration_text[2], '+.0005']])
+             ['-0.5ms', self.calibration_text[1], '+0.5ms'],
+             ['-0.5ms', self.calibration_text[2], '+0.5ms']])
         mouse_functions = np.array(
             [[partial(self.run_behavior, buttons[i, j]) for j in range(buttons.shape[1])] for i in range(mouse_rows)])
         control_func = np.array([[self.reset, self.check_ir, partial(self.run_behavior, 'testmouse')],

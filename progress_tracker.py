@@ -5,15 +5,21 @@ from os import walk
 import pandas as pd
 from csv import DictReader, reader
 import numpy as np
+from datetime import date
 
 
-def get_today_filepaths():
+def get_today_filepaths(days_back=0):
     file_paths = []
     for root, dirs, filenames in walk(os.path.join(os.getcwd(), 'data')):
         if len(dirs) == 0 and os.path.basename(root)[:2] == 'ES':
             mouse = os.path.basename(root)
             for f in filenames:
-                if f[5:15] == time.strftime("%Y-%m-%d"):
+                if f == 'desktop.ini':
+                    continue
+                file_date = date(int(f[5:9]), int(f[10:12]), int(f[13:15]))
+                dif = date.today() - file_date
+                if dif.days <= days_back:
+                    # if f[5:15] == time.strftime("%Y-%m-%d"):
                     file_paths.append(os.path.join(mouse, f))
     return file_paths
 
@@ -32,7 +38,8 @@ def gen_data(file_paths):
         starts = np.where([True if s[0] == '{' else False for s in info_values])[0][::-1]
         ends = np.where([True if s[-1] == '}' else False for s in info_values])[0][::-1]
         for i in range(len(starts)):
-            info_values = info_values[:starts[i]] + [",".join(info_values[starts[i]:ends[i]+1])] + info_values[ends[i]+1:]
+            info_values = info_values[:starts[i]] + [",".join(info_values[starts[i]:ends[i] + 1])] + info_values[
+                                                                                                     ends[i] + 1:]
         info = dict(zip(info_keys, info_values))
         num_reward = len(data[(data.key == 'reward') & (data.value == 1)])
         mouse = os.path.dirname(f)

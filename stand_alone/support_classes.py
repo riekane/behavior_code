@@ -8,6 +8,7 @@ import pickle
 import tempfile
 import smbus
 import numpy as np
+from pygame import mixer
 
 
 class Error(Exception):
@@ -188,11 +189,16 @@ class Session:
         os.chdir(os.path.join(os.getcwd(), '..', '..'))
         print('\nFile closed and clean up complete')
         if self.halted:
-            print('Session stopped early via KeyboardInterrupt')
+            print('Session stopped early')
         elif self.smooth_finish:
             print('Session ran smoothly to the end')
         else:
             print('Session ended due to an error:\n')
+        mixer.init()
+        tone = mixer.Sound('end_tone.wav')
+        tone.set_volume(.5)
+        mixer.Sound.play(tone, fade_ms=500)
+        time.sleep(5)
 
 
 class Port:
@@ -323,6 +329,7 @@ class Task:
         self.frame_interval = 1 / self.frame_rate
         self.last_frame = time.time()
         self.cam_high = False
+        self.early_stop = False
 
     def initialize(self):
         self.task_start_time = time.time()
@@ -429,6 +436,8 @@ class Task:
         elif self.limit == 'time':
             conditional = time.time() - self.task_start_time < self.max_time
         else:
+            conditional = False
+        if self.early_stop:
             conditional = False
         return conditional
 
