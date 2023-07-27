@@ -9,6 +9,9 @@ import pickle
 from time import sleep
 from main import *
 import pexpect
+from user_info import get_user_info
+
+info_dict = get_user_info()
 
 
 # scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@elissapi0:\home\pi
@@ -30,21 +33,27 @@ class Gui:
         self.calibration_text[1].set(f'Port 1: {self.durations[1] * 1000}ms ')
         self.calibration_text[2].set(f'Port 2: {self.durations[2] * 1000}ms')
         myFont = font.Font(size=30)
-        mouse_rows = 2
-        self.mouse_assignments = {
-            'ES036': single_reward,
-            'ES037': single_reward,
-            'ES038': single_reward,
-            'ES039': cued_forgo,
-            'ES040': cued_forgo,
-            'testmouse': cued_forgo,
+        mouse_rows = len(info_dict['mouse_buttons'])
+        self.mouse_assignments = info_dict['mouse_assignments']
+        tasks = {
+            'single_reward': single_reward,
+            'cued_forgo': cued_forgo
         }
+        for key in self.mouse_assignments.keys():
+            self.mouse_assignments[key] = tasks[self.mouse_assignments[key]]
+        # self.mouse_assignments = {
+        #     'ES036': single_reward,
+        #     'ES037': single_reward,
+        #     'ES038': single_reward,
+        #     'ES039': cued_forgo,
+        #     'ES040': cued_forgo,
+        #     'testmouse': cued_forgo,
+        # }
         buttons = np.array(
-            [['ES036', 'ES037', 'ES038'],
-             ['ES039', 'ES040', 'None'],
+            [*info_dict['mouse_buttons'],
              ['check_scp', 'check_ir', 'testmouse'],
-             ['-0.5ms', self.calibration_text[1], '+0.5ms'],
-             ['-0.5ms', self.calibration_text[2], '+0.5ms']])
+             ['-0.25ms', self.calibration_text[1], '+0.25ms'],
+             ['-0.25ms', self.calibration_text[2], '+0.25ms']])
         mouse_functions = np.array(
             [[partial(self.run_behavior, buttons[i, j]) for j in range(buttons.shape[1])] for i in range(mouse_rows)])
         control_func = np.array([[self.reset, self.check_ir, partial(self.run_behavior, 'testmouse')],
@@ -103,15 +112,15 @@ class Gui:
             sleep(.1)
 
     def increase(self, port):
-        self.durations[port] = np.around(self.durations[port] + .0005, decimals=5)
-        self.calibration_text[port].set(f'Calibrate port {port} {self.durations[port]}')
+        self.durations[port] = np.around(self.durations[port] + .00025, decimals=6)
+        self.calibration_text[port].set(f'Port {port}: {self.durations[port] * 1000}ms')
         print(f'increasing port {port} to {self.durations[port]}')
         with open('durations.pkl', 'wb') as f:
             pickle.dump(self.durations, f)
 
     def decrease(self, port):
-        self.durations[port] = np.around(self.durations[port] - .0005, decimals=5)
-        self.calibration_text[port].set(f'Calibrate port {port} {self.durations[port]}')
+        self.durations[port] = np.around(self.durations[port] - .00025, decimals=6)
+        self.calibration_text[port].set(f'Port {port}: {self.durations[port] * 1000}ms')
         print(f'decreasing port {port} to {self.durations[port]}')
         with open('durations.pkl', 'wb') as f:
             pickle.dump(self.durations, f)

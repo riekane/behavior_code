@@ -9,7 +9,9 @@ import tempfile
 import smbus
 import numpy as np
 from pygame import mixer
+from user_info import get_user_info
 
+info_dict = get_user_info()
 
 class Error(Exception):
     """Base class for other exceptions"""
@@ -108,15 +110,19 @@ def perform(task):
 
 class Session:
     def __init__(self, mouse):
-        self.ip = '10.16.79.143'
         self.mouse = mouse
-        self.user = 'Elissa'
-        self.ssh_path = 'GoogleDrive/Code/Python/behavior_code/data/' + self.mouse
-        self.data_send_path = 'C:/Users/Elissa/' + self.ssh_path + '/'
+        # self.ip = '10.16.79.143'
+        # self.user = 'Elissa'
+        # self.ssh_path = 'GoogleDrive/Code/Python/behavior_code/data/' + self.mouse
+        # self.data_send_path = 'C:/Users/Elissa/' + self.ssh_path + '/'
+        self.ip = info_dict['desktop_ip']
+        self.user = info_dict['desktop_user']
+        self.ssh_path = os.path.join(info_dict['desktop_save_path'], self.mouse)
+        self.data_send_path = os.path.join(info_dict['desktop_user_root'], self.ssh_path)
         # error with 0: re.compile('[Pp]assword: ') means you need to update the ip address. open command prompt and
         # type ipconfig/all then press enter. Find the ip address starting with 10 and update it here
         self.host_name = os.uname()[1]
-        self.password = 'shuler'
+        self.password = info_dict['desktop_password']
         self.data_write_path = "/data/" + self.mouse
         self.datetime = time.strftime("%Y-%m-%d_%H-%M-%S")
         self.filename = "data_" + self.datetime + ".txt"
@@ -441,14 +447,14 @@ class Task:
             conditional = False
         return conditional
 
-    def check_video(self):
-        minutes_per = 5
-        if not self.last_video_start or time.time() - self.last_video_start > minutes_per * 60:
-            print('video recording started')
-            self.last_video_start = time.time()
-            os.system(
-                'ssh Elissa@10.194.169.93 \'Anaconda3\\Scripts\\activate open_cv && cd PycharmProjects\\open_cv_test && curl -X POST -H "Content-Type: application/json" -d "{\\"mouse\\":\\"' + self.session.mouse + '\\"}" localhost:8000/check_start\'')
-            self.log('nan', 1, 'video')
+    # def check_video(self):
+    #     minutes_per = 5
+    #     if not self.last_video_start or time.time() - self.last_video_start > minutes_per * 60:
+    #         print('video recording started')
+    #         self.last_video_start = time.time()
+    #         os.system(
+    #             'ssh Elissa@10.194.169.93 \'Anaconda3\\Scripts\\activate open_cv && cd PycharmProjects\\open_cv_test && curl -X POST -H "Content-Type: application/json" -d "{\\"mouse\\":\\"' + self.session.mouse + '\\"}" localhost:8000/check_start\'')
+    #         self.log('nan', 1, 'video')
 
     def check_time(self):
         if (time.time() - self.last_report) > self.report_interval:

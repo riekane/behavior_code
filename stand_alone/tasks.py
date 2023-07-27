@@ -364,13 +364,15 @@ def cued_forgo_task(task_shell, step_size=.1):
                     #     block = len(port.dist_info['rates']) - 1
                     interval = 1 / task_shell.phase
                     if (background_time + current_time - background_start_time) // interval > background_rewards:
-                        if port.licked:
+                        if port.licked or port.lick_status:
                             port.sol_on()
                             task_shell.log(port.name, 1, 'reward')
                             task_shell.reward_count += 1
                             print(
                                 f'background reward delivered: {background_time + time.time() - background_start_time}'
                                 f' / {time.time() - trial_start_time}')
+                            if not port.licked and port.lick_status:
+                                print('Reward delivered because lick has been on since the previous reward.')
                             port.licked = False
                         else:
                             print(f'background reward missed: {background_time + time.time() - background_start_time}'
@@ -378,7 +380,6 @@ def cued_forgo_task(task_shell, step_size=.1):
                             task_shell.log(port.name, 1, 'missed_reward')
                         background_rewards += 1
                     if background_time + current_time - background_start_time > port.dist_info['duration']:
-                        print('exp option available')
                         # port.led_on()
                         # task_shell.log(port.name, 1, 'LED')
                         background_time = 0
@@ -405,6 +406,7 @@ def cued_forgo_task(task_shell, step_size=.1):
                                     choice = 'free'
                         if not forgo:
                             if task_shell.phase == rates[1] or forced:
+                                print('exp option available')
                                 exp_available = True
                                 background_available = False
                                 task_shell.log(port.name, 1, 'forced_switch')
@@ -554,13 +556,15 @@ def single_reward_task(task_shell, step_size=.1):
                     num_rewards = 4
                     if (background_time + current_time - background_start_time) // interval > background_rewards:
                         background_rewards += 1
-                        if port.licked:
+                        if port.licked or port.lick_status:
                             port.sol_on()
                             task_shell.log(port.name, 1, 'reward')
                             task_shell.reward_count += 1
                             print(
                                 f'background reward delivered: {background_time + time.time() - background_start_time}'
                                 f' / {time.time() - trial_start_time}')
+                            if not port.licked and port.lick_status:
+                                print('Reward delivered because lick has been on since the previous reward.')
                             port.licked = False
                         else:
                             print(f'background reward missed: {background_time + time.time() - background_start_time}'
@@ -762,7 +766,7 @@ def stop_button(task_shell):
 class StopButton:
     def __init__(self, task_shell):
         self.root = tk.Tk()
-        self.root.geometry("600x400")
+        self.root.geometry("600x500")
         self.root.title(task_shell.session.mouse)
         self.task_shell = task_shell
         self.button = tk.Button(
@@ -774,10 +778,13 @@ class StopButton:
             fg="black",
             font=("Arial", 25),
             command=self.stop)
+        self.name_label = tk.Label(self.root, text=f'{task_shell.session.mouse}',
+                              width=50, height=2, font=("Arial", 40))
         self.label = tk.Label(self.root, text=f'Time Remaining: '
                                               f'{str(datetime.timedelta(seconds=task_shell.max_time))[2:7]}\n'
                                               f'Rewards Collected: 0',
                               width=50, height=4, font=("Arial", 25))
+        self.name_label.pack()
         self.label.pack()
         self.button.pack()
         self._job = self.root.after(1000, self.check_continue)

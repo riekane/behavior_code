@@ -6,12 +6,18 @@ import pandas as pd
 from csv import DictReader, reader
 import numpy as np
 from datetime import date
+from upload_to_pi import reset_time, ping_host
+from user_info import get_user_info
+
+info_dict = get_user_info()
+initials = info_dict['initials']
+pi_names = info_dict['pi_names']
 
 
 def get_today_filepaths(days_back=0):
     file_paths = []
     for root, dirs, filenames in walk(os.path.join(os.getcwd(), 'data')):
-        if len(dirs) == 0 and os.path.basename(root)[:2] == 'ES':
+        if len(dirs) == 0 and os.path.basename(root)[:2] == initials:
             mouse = os.path.basename(root)
             for f in filenames:
                 if f == 'desktop.ini':
@@ -58,12 +64,22 @@ class App(Frame):
         self.master = master
         self.label = Label(text="", fg="Black", font=("Helvetica", 18))
         self.label.place(x=40, y=50)
-        self.update()
+        self.host_names = pi_names
+        self.host_status = [True] * 3
+
+        data = gen_data(get_today_filepaths())
+        txt = '\n'.join([f'{key}: {", ".join(str(d) for d in data[key])}' for key in data])
+        self.label.configure(text=txt)
 
     def update(self):
         data = gen_data(get_today_filepaths())
         txt = '\n'.join([f'{key}: {", ".join(str(d) for d in data[key])}' for key in data])
         self.label.configure(text=txt)
+        new_host_status = [ping_host(name) for name in self.host_names]
+        for i, (a, b) in enumerate(zip(new_host_status, self.host_status)):
+            if a and not b:
+                reset_time(self.host_names[i])
+        self.host_status = new_host_status
         self.after(10000, self.update)
 
 
