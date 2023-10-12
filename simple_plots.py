@@ -343,6 +343,10 @@ def simple_plots():
         axes[1, 0].set_title('Reward Rate by Block')
         axes[1, 1].set_title('Percent Time Engaged by Block')
 
+        axes[0, 0].set_xlabel('session')
+        axes[0, 1].set_xlabel('session')
+        axes[1, 0].set_xlabel('session')
+        axes[1, 1].set_xlabel('session')
         # axes[0, 0].set_ylim([0, axes[0, 0].get_ylim()[1]])
         # axes[0, 1].set_ylim([0, axes[0, 1].get_ylim()[1]])
         # axes[1, 0].set_ylim([0, axes[1, 0].get_ylim()[1]])
