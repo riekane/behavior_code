@@ -7,19 +7,24 @@ from user_info import get_user_info
 def upload_to_pi(pi_host_name, durations=False):
     local_path = os.path.join(os.getcwd(), "stand_alone")
     pi_user_name = 'pi'
-    remote_path = '/home/pi'
+    remote_path = '/home/pi/behavior'
     password = 'shuler'
     # command = f'scp -r {os.path.join(local_path, "stand_alone")} {pi_user_name}@{pi_host_name}:{remote_path}'
     ssh = paramiko.SSHClient()
     ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
     ssh.connect(pi_host_name, username=pi_user_name, password=password)
     sftp = ssh.open_sftp()
+    try:
+        sftp.chdir(remote_path)  # Test if remote_path exists
+    except IOError:
+        sftp.mkdir(remote_path)  # Create remote_path
+        sftp.chdir(remote_path)
 
     [_, _, files] = list(os.walk(local_path))[0]
     for f in files:
         if f != 'desktop.ini' and (f != 'durations.pkl' or durations):
-            print(pi_host_name + ' ' + '/'.join([remote_path, 'stand_alone', f]))
-            sftp.put(os.path.join(local_path, f), '/'.join([remote_path, 'stand_alone', f]))
+            print(pi_host_name + ' ' + '/'.join([remote_path, f]))
+            sftp.put(os.path.join(local_path, f), '/'.join([remote_path, f]))
     sftp.close()
     ssh.close()
 
