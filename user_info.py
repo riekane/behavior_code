@@ -3,8 +3,9 @@ from datetime import date
 
 def get_user_info():
     info_dict = {
-        'initials': 'ES',
-        'pi_names': ['elissapi0', 'elissapi2', 'elissapi4'],
-        'start_date': date(2023, 6, 13)  # For the current cohort, for the sake of simple_plots.py
+        'initials': 'SZ',
+        # 'pi_names': ['elissapi1', 'shichenpi2'],
+        'pi_names': ['shichenpi3'],
+        'start_date': date(2023, 10, 11)  # For the current cohort, for the sake of simple_plots.py
     }
     return info_dict
