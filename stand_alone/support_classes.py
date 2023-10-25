@@ -78,6 +78,21 @@ def scp(host, filename, destination, user, password, timeout=30, bg_run=False, r
     child.sendline(password)
     child.expect(pexpect.EOF)
     child.close()
+    if child.exitstatus == 1:  # if it doesn't work, try again with one fewer set of quotation marks
+        print('scp didn\'t work the first time so we are trying again with one fewer set of parentheses')
+        scp_cmd2 = 'scp %s %s %s@%s:"%s"' % (options, filename, user, host, os.path.join(destination, filename))
+        print(scp_cmd2)
+        if cmd:
+            return scp_cmd2
+        child = pexpect.spawnu(scp_cmd2, timeout=timeout)  # spawnu for Python 3
+        child.expect(['[Pp]assword: '])
+        child.sendline(password)
+        child.expect(pexpect.EOF)
+        child.close()
+        if child.exitstatus == 1:
+            'still didn\'t work :('
+        elif child.exitstatus == 0:
+            print('worked!')
     return child.exitstatus
 
 
