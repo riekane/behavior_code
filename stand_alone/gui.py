@@ -13,11 +13,12 @@ from user_info import get_user_info
 
 info_dict = get_user_info()
 
-
 # scp -r C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone pi@elissapi0:\home\pi
 # scp C:\Users\Elissa\GoogleDrive\Code\Python\behavior_code\stand_alone\scp_rescue.py pi@elissapi1:\home\pi\behavior
 
 # scp -r "C:\Users\Shichen\OneDrive - Johns Hopkins\ShulerLab\behavior_code\stand_alone" pi@elissapi1:\home\pi\behavior1
+pastel_colors = ['#ffffcc', '#99ccff', '#cc99ff', '#ff99cc', '#ffcc99', '#ffffcc', '#99ffcc', '#ccffff', '#ccccff',
+                 '#ffccff', '#ffcccc', '#D3D3D3']
 
 
 class Gui:
@@ -59,6 +60,11 @@ class Gui:
         control_func = np.array([[self.reset, self.check_ir, partial(self.run_behavior, 'testmouse')],
                                  [partial(self.decrease, 1), partial(self.calibrate, 1), partial(self.increase, 1)],
                                  [partial(self.decrease, 2), partial(self.calibrate, 2), partial(self.increase, 2)]])
+        button_colors = [*info_dict['button_colors'],
+                         [0, 0, 0],
+                         [0, 0, 0],
+                         [0, 0, 0],
+                         ]
         functions = np.concatenate([mouse_functions, control_func])
         self.button_list = []
         for i in range(buttons.shape[0]):
@@ -77,7 +83,7 @@ class Gui:
                         font=myFont,
                         width=60,
                         height=7,
-                        bg="white",
+                        bg=pastel_colors[button_colors[i][j]],
                         fg="black",
                         master=frame,
                         command=functions[i, j])
@@ -87,7 +93,7 @@ class Gui:
                         font=myFont,
                         width=60,
                         height=7,
-                        bg="white",
+                        bg=pastel_colors[button_colors[i][j]],
                         fg="black",
                         master=frame,
                         command=functions[i, j])

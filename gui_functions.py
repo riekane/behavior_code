@@ -12,7 +12,7 @@ def run_behavior(mouse):
 
 def calibrate(port):
     print(f'calibrating port {port}')
-    with open('durations.pkl', 'rb') as f:
+    with open('stand_alone/durations.pkl', 'rb') as f:
         durations = pickle.load(f)
     GPIO.setmode(GPIO.BCM)
     port_object = Port(port, dist_info='filler', duration=durations[port])
@@ -24,20 +24,20 @@ def calibrate(port):
 
 
 def increase(port):
-    with open('durations.pkl', 'rb') as f:
+    with open('stand_alone/durations.pkl', 'rb') as f:
         durations = pickle.load(f)
     durations[port] += .0005
     print(f'increasing port {port} to {durations[port]}')
-    with open('durations.pkl', 'wb') as f:
+    with open('stand_alone/durations.pkl', 'wb') as f:
         pickle.dump(durations, f)
 
 
 def decrease(port):
-    with open('durations.pkl', 'rb') as f:
+    with open('stand_alone/durations.pkl', 'rb') as f:
         durations = pickle.load(f)
     durations[port] -= .0005
     print(f'decreasing port {port} to {durations[port]}')
-    with open('durations.pkl', 'wb') as f:
+    with open('stand_alone/durations.pkl', 'wb') as f:
         pickle.dump(durations, f)
 
 
