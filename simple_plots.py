@@ -571,8 +571,8 @@ def session_summary_axis_settings(axes, max_trial):
 
 
 if __name__ == '__main__':
-    # mice = ['ES037', 'ES039', 'ES041', 'ES042', 'ES043', 'ES044', 'ES045', 'ES046', 'ES047']
-    mice = [                      'ES045', 'ES046', 'ES047']
+    mice = ['ES037', 'ES039', 'ES041', 'ES042', 'ES043', 'ES044', 'ES045', 'ES046', 'ES047']
+    # mice = ['ES045', 'ES046', 'ES047']
     # mice = ['ES041', 'ES042', 'ES045', 'ES046']
     # mice = ['ES041', 'ES045']
     simple_plots(mice)
