@@ -766,7 +766,7 @@ def stop_button(task_shell):
 class StopButton:
     def __init__(self, task_shell):
         self.root = tk.Tk()
-        self.root.geometry("600x500")
+        self.root.geometry("600x500+300+300")
         self.root.title(task_shell.session.mouse)
         self.task_shell = task_shell
         self.button = tk.Button(

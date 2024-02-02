@@ -8,6 +8,7 @@ import numpy as np
 from datetime import date
 from upload_to_pi import reset_time, ping_host
 from user_info import get_user_info
+import shutil
 
 info_dict = get_user_info()
 initials = info_dict['initials']
@@ -35,6 +36,8 @@ def gen_data(file_paths):
     for f in file_paths:
         if f[:5] == 'mouse':
             print('stop')
+        mouse_name = f[:5]
+        file_name = f[6:]
         path = os.path.join(os.getcwd(), 'data', f)
         data = pd.read_csv(path, na_values=['None'], skiprows=3)
         with open(path, 'r') as file:
@@ -51,10 +54,21 @@ def gen_data(file_paths):
         mouse = os.path.dirname(f)
         reward_string = f'{num_reward}({info["box"][-1]})'
 
-        if mouse in d.keys():
-            d[mouse].append(reward_string)
+        half_session_path = os.path.join(os.getcwd(), 'data', 'half_sessions', file_name)
+        if data.session_time.max() < 800:
+            print(f'moving {file_name} to half sessions, session time: {data.session_time.max():.2f} seconds')
+            shutil.move(path, half_session_path)
+            continue
+        if num_reward == 0:
+            ans = input(f'remove zero reward file? (y/n)\n{path}\n???')
+            if ans == 'y':
+                half_session_path = os.path.join(os.getcwd(), 'data', 'half_sessions', file_name)
+                shutil.move(path, half_session_path)
         else:
-            d[mouse] = [reward_string]
+            if mouse in d.keys():
+                d[mouse].append(reward_string)
+            else:
+                d[mouse] = [reward_string]
     return d
 
 

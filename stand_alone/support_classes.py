@@ -201,7 +201,8 @@ class Session:
         mkdir_command = 'if not exist "%s" mkdir "%s"' % (
             self.ssh_path.replace('/', '\\'), self.ssh_path.replace('/', '\\'))
         ssh(self.ip, mkdir_command, self.user, self.password)
-        if not scp(self.ip, self.filename, self.data_send_path, self.user, self.password):
+        res = scp(self.ip, self.filename, self.data_send_path, self.user, self.password)
+        if not res:
             print('\nSuccessful file transfer to "%s"\nDeleting local file from pi.' % self.data_send_path)
             os.remove(self.filename)
         else:

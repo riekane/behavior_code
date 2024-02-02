@@ -11,6 +11,7 @@ import seaborn as sns
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 from user_info import get_user_info
+import shutil
 
 info_dict = get_user_info()
 initials = info_dict['initials']
@@ -46,19 +47,76 @@ def min_dif(a, b, tolerance=0, return_index=False, rev=False):
         outer[outer <= tolerance] = np.nan
     # noinspection PyBroadException
     mins = np.nanmin(outer, axis=0)
+
     if return_index:
         index = np.nanargmin(outer, axis=0)
         return index, mins
     return mins
 
 
-def gen_data(file_paths):
+def read_pi_meta(pi_dir):
+    with open(pi_dir, 'r') as file:  # Read meta data from first two lines into a dictionary
+        line1 = file.readline()[:-1]
+        line2 = file.readline()[:-1]
+        pieces = line2.split(',')
+        if '{' in line2:
+            curly_start = np.where(np.array([p[0] for p in pieces]) == '{')[0]
+            curly_end = np.where(np.array([p[-1] for p in pieces]) == '}')[0]
+            pieces_list = []
+            sub_piece = []
+            for i in range(len(pieces)):
+                if curly_start[0] <= i <= curly_end[0] or curly_start[1] <= i <= curly_end[1]:
+                    sub_piece.append(pieces[i])
+                else:
+                    pieces_list.append(pieces[i])
+                if i in curly_end:
+                    string = ','.join(sub_piece)
+                    try:
+                        s, e = string.index('<'), string.index('>')
+                        string = string[:s] + "'exp_decreasing'" + string[e + 1:]
+                    except Exception as e:
+                        pass
+                    pieces_list.append(eval(string))
+                    sub_piece = []
+        else:
+            pieces_list = line2.split(',')
+    info = dict(zip(line1.split(','), pieces_list))
+    return info
+
+
+def gen_data(file_paths, select_mouse=None, return_info=False):
     d = {}
     for f in file_paths:
-        path = os.path.join(os.getcwd(), 'data', f)
-        data = pd.read_csv(path, na_values=['None'], skiprows=3)
         mouse = os.path.dirname(f)
-        data = data_reduction(data)
+        if select_mouse is not None and mouse not in select_mouse:
+            continue
+
+        path = os.path.join(os.getcwd(), 'data', f)
+        if return_info:
+            data = read_pi_meta(path)
+            # if data['box'] == 'elissapi0':
+            #     session = pd.read_csv(path, na_values=['None'], skiprows=3)
+            #     session_summary(data_reduction(session), mouse)
+            #     ans = input(f'remove broken file? (y/n)\n{path}\n???')
+            #     if ans == 'y':
+            #         file_name = f[6:]
+            #         half_session_path = os.path.join(os.getcwd(), 'data', 'half_sessions', file_name)
+            #         shutil.move(path, half_session_path)
+        else:
+            data = pd.read_csv(path, na_values=['None'], skiprows=3)
+            try:
+                data = data_reduction(data)
+            except ValueError:
+                file_name = f[6:]
+                half_session_path = os.path.join(os.getcwd(), 'data', 'half_sessions', file_name)
+                if data.session_time.max() < 800:
+                    print(f'moving {f} to half sessions, session time: {data.session_time.max():.2f} seconds')
+                    shutil.move(path, half_session_path)
+                else:
+                    ans = input(f'remove broken file? (y/n)\n{path}\n???')
+                    if ans == 'y':
+                        shutil.move(path, half_session_path)
+                continue
         if mouse in d.keys():
             d[mouse].append(data)
         else:
@@ -132,6 +190,7 @@ def block_leave_times(df):
     exp_entries = exp_entries.groupby('trial').session_time.max()
     exp_exits = exp_exits.groupby('trial').session_time.max()
     valid_trials = np.intersect1d(exp_exits.index.values, exp_entries.index.values)
+    valid_trials = np.intersect1d(valid_trials, bg_end_times.trial.values)
     exp_exits = exp_exits.loc[valid_trials]
     exp_entries = exp_entries.loc[valid_trials]
     if len(exp_exits.to_numpy()) != len(exp_entries.to_numpy()):
@@ -153,33 +212,23 @@ def get_entry_exit(df, trial):
     port2 = df.port == 2
 
     trial_start = df[is_trial & start & (df.key == 'trial')].session_time.values[0]
+    trial_middle = df[is_trial & end & (df.key == 'LED') & port2].session_time.values[0]
     trial_end = df[is_trial & end & (df.key == 'trial')].session_time.values[0]
-    if df[is_trial & end & (df.key == 'LED') & port2].session_time.values.size > 0:
-        trial_middle = df[is_trial & end & (df.key == 'LED') & port2].session_time.values[0]
-        exp_entries = df[is_trial & port1 & start & (df.key == 'head') &
-                         (df.session_time > trial_middle)].session_time.to_numpy()
-        exp_exits = df[is_trial & port1 & end & (df.key == 'head') &
-                       (df.session_time > trial_middle)].session_time.to_numpy()
-        early_exp_entries = df[is_trial & port1 & start & (df.key == 'head') &
-                               (df.session_time < trial_middle)].session_time.to_numpy()
-        early_exp_exits = df[is_trial & port1 & end & (df.key == 'head') &
-                             (df.session_time < trial_middle)].session_time.to_numpy()
-    else:
-        trial_middle = []
-        exp_entries = []
-        exp_exits = []
-        early_exp_entries = []
-        early_exp_exits = []
 
     bg_entries = df[is_trial & port2 & start & (df.key == 'head')].session_time.to_numpy()
     bg_exits = df[is_trial & port2 & end & (df.key == 'head')].session_time.to_numpy()
 
-    if len(bg_entries) == 0 or bg_entries[0] > bg_exits[0]:
+    if len(bg_entries) == 0 or len(bg_exits) == 0 or bg_entries[0] > bg_exits[0]:
         bg_entries = np.concatenate([[trial_start], bg_entries])
     if trial_end - bg_entries[-1] < .1:
         bg_entries = bg_entries[:-1]
     if len(bg_exits) == 0 or bg_entries[-1] > bg_exits[-1]:
-        bg_entries = np.concatenate([bg_exits, [trial_middle]])
+        bg_exits = np.concatenate([bg_exits, [trial_middle]])
+
+    exp_entries = df[is_trial & port1 & start & (df.key == 'head') &
+                     (df.session_time > trial_middle)].session_time.to_numpy()
+    exp_exits = df[is_trial & port1 & end & (df.key == 'head') &
+                   (df.session_time > trial_middle)].session_time.to_numpy()
 
     if not (len(exp_entries) == 0 and len(exp_exits) == 0):
         if len(exp_entries) == 0:
@@ -191,6 +240,11 @@ def get_entry_exit(df, trial):
             exp_entries = np.concatenate([[trial_middle], exp_entries])
         if exp_entries[-1] > exp_exits[-1]:
             exp_exits = np.concatenate([exp_exits, [trial_end]])
+
+    early_exp_entries = df[is_trial & port1 & start & (df.key == 'head') &
+                           (df.session_time < trial_middle)].session_time.to_numpy()
+    early_exp_exits = df[is_trial & port1 & end & (df.key == 'head') &
+                         (df.session_time < trial_middle)].session_time.to_numpy()
 
     if not (len(early_exp_entries) == 0 and len(early_exp_exits) == 0):
         if len(early_exp_entries) == 0:
@@ -204,11 +258,7 @@ def get_entry_exit(df, trial):
             early_exp_exits = np.concatenate([early_exp_exits, [trial_middle]])
 
     if len(bg_entries) != len(bg_exits):
-        print(trial)
-        if bg_exits[0] < bg_entries[0]:
-            bg_exits = bg_exits[1:]
-        elif bg_entries[-1] > bg_exits[-1]:
-            bg_entries = bg_entries[:-1]
+        print()
     if len(exp_entries) != len(exp_exits):
         print()
     if len(early_exp_entries) != len(early_exp_exits):
@@ -236,6 +286,7 @@ def percent_engaged(df):
             end = df.value == 0
             # port1 = df.port == 1
             # port2 = df.port == 2
+
             #
             trial_start = df[is_trial & start & (df.key == 'trial')].session_time.values[0]
             # trial_middle = df[is_trial & start & (df.key == 'LED') & port2].session_time.values[0]
@@ -319,88 +370,98 @@ def reentry_index(df):
     return reentry_df
 
 
-def add_h_lines(data=None, x=None, y=None, hue=None, ax=None, palette=None):
+def add_h_lines(data=None, x=None, y=None, hue=None, ax=None, palette=None, estimator='mean'):
+    days_back = 10
     palette = sns.color_palette(palette)
     for i, hue_key in enumerate(data[hue].unique()):
         df = data[data[hue] == hue_key]
-        if df[x].max() > 10:
-            hue_mean = df[(df[x] > df[x].max() - 10)][y].mean()
-            ax.hlines(hue_mean, df[x].max() - 10, df[x].max(), palette[i], alpha=.5)
+        if df[x].max() > days_back:
+            if estimator == 'median':
+                hue_mean = df[(df[x] > df[x].max() - days_back)][y].median()
+            else:
+                hue_mean = df[(df[x] > df[x].max() - days_back)][y].mean()
+            ax.hlines(hue_mean, df[x].max() - days_back, df[x].max(), palette[i], alpha=.5)
 
 
+def merge_old_trials(session):
+    print()
+    return session
 
-def simple_plots():
-    dif = date.today() - start_date
-    data = gen_data(get_today_filepaths(days_back=dif.days))
+
+def simple_plots(select_mouse=None):
+    plot_single_mouse_plots=True
+    if select_mouse is None:
+        dif = date.today() - start_date
+        data = gen_data(get_today_filepaths(days_back=dif.days), select_mouse=select_mouse)
+        info = gen_data(get_today_filepaths(days_back=dif.days), select_mouse=select_mouse, return_info=True)
+    else:
+        data = gen_data(get_today_filepaths(days_back=1000), select_mouse=select_mouse)
+        info = gen_data(get_today_filepaths(days_back=1000), select_mouse=select_mouse, return_info=True)
     block_leaves_last10 = pd.DataFrame()
     for mouse in data.keys():
+        if select_mouse is not None and mouse not in select_mouse:
+            continue
         engaged = pd.DataFrame()
         consumption = pd.DataFrame()
         block_leaves = pd.DataFrame()
         reentry = pd.DataFrame()
         for i, session in enumerate(data[mouse]):
-            engaged_df = percent_engaged(session)
-            engaged_df['day'] = [i] * len(engaged_df)
-            engaged = pd.concat([engaged, engaged_df])
+            if info[mouse][i]['task'] == 'cued_forgo_forced':
+                continue
+            try:
+                session = merge_old_trials(session)
 
-            consumption_df = consumption_time(session)
-            consumption_df['day'] = [i] * len(consumption_df)
-            consumption = pd.concat([consumption, consumption_df])
+                engaged_df = percent_engaged(session)
+                engaged_df['day'] = [i] * len(engaged_df)
+                engaged = pd.concat([engaged, engaged_df])
 
-            block_leaves_df = block_leave_times(session)
-            block_leaves_df['day'] = [i] * len(block_leaves_df)
-            block_leaves = pd.concat([block_leaves, block_leaves_df])
+                consumption_df = consumption_time(session)
+                consumption_df['day'] = [i] * len(consumption_df)
+                consumption = pd.concat([consumption, consumption_df])
 
-            reentry_df = reentry_index(session)
-            reentry_df['day'] = [i] * len(reentry_df)
-            reentry = pd.concat([reentry, reentry_df])
+                block_leaves_df = block_leave_times(session)
+                block_leaves_df['day'] = [i] * len(block_leaves_df)
+                block_leaves = pd.concat([block_leaves, block_leaves_df])
+
+                reentry_df = reentry_index(session)
+                reentry_df['day'] = [i] * len(reentry_df)
+                reentry = pd.concat([reentry, reentry_df])
+            except Exception as e:
+                raise e
 
         engaged.sort_values('block', inplace=True)
         block_leaves.sort_values('block', inplace=True)
-        # fig, axes = plt.subplots(3, 2, figsize=[11, 12], layout="constrained")
-        # sns.lineplot(data=block_leaves.reset_index(), x='day', y='leave time', hue='block', ax=axes[0, 0],
-        #              palette='Set2')
-        # add_h_lines(data=block_leaves.reset_index(), x='day', y='leave time', hue='block', ax=axes[0, 0],
-        #             palette='Set2')
-        # sns.lineplot(data=consumption.reset_index(), x='day', y='consumption time', hue='port', ax=axes[0, 1],
-        #              palette='Set1')
-        # add_h_lines(data=consumption.reset_index(), x='day', y='consumption time', hue='port', ax=axes[0, 1],
-        #             palette='Set1')
-        # sns.lineplot(data=engaged.reset_index(), x='day', y='reward rate', hue='block', ax=axes[1, 0],
-        #              palette='Set2')
-        # add_h_lines(data=engaged.reset_index(), x='day', y='reward rate', hue='block', ax=axes[1, 0],
-        #             palette='Set2')
-        # sns.lineplot(data=engaged.reset_index(), x='day', y='percent engaged', hue='block', ax=axes[1, 1],
-        #              palette='Set2')
-        # add_h_lines(data=engaged.reset_index(), x='day', y='percent engaged', hue='block', ax=axes[1, 1],
-        #             palette='Set2')
-        # sns.lineplot(data=reentry.reset_index(), x='day', y='bg_reentry_index', hue='block', ax=axes[2, 0],
-        #              palette='Set2')
-        # add_h_lines(data=reentry.reset_index(), x='day', y='bg_reentry_index', hue='block', ax=axes[2, 0],
-        #             palette='Set2')
-        #
-        # axes[0, 0].set_title('Leave Time by Block')
-        # axes[0, 1].set_title('Consumption Time by Port')
-        # axes[1, 0].set_title('Reward Rate by Block')
-        # axes[1, 1].set_title('Percent Time Engaged by Block')
-        # axes[2, 0].set_title('Background Re-entry Index')
-        #
-        # axes[0, 0].set_xlabel('session')
-        # axes[0, 1].set_xlabel('session')
-        # axes[1, 0].set_xlabel('session')
-        # axes[1, 1].set_xlabel('session')
-        # axes[2, 0].set_xlabel('session')
-        # # axes[0, 0].set_ylim([0, axes[0, 0].get_ylim()[1]])
-        # # axes[0, 1].set_ylim([0, axes[0, 1].get_ylim()[1]])
-        # # axes[1, 0].set_ylim([0, axes[1, 0].get_ylim()[1]])
-        # # axes[1, 1].set_ylim([0, 1])
-        # axes[0, 0].set_ylim([0, 15])
-        # axes[0, 1].set_ylim([0, 15])
-        # axes[1, 0].set_ylim([0, .65])
-        # axes[1, 1].set_ylim([0, 1])
-        # axes[2, 0].set_ylim([0.98, 3])
-        # plt.suptitle(mouse, fontsize=20)
-        # plt.show()
+        if plot_single_mouse_plots:
+            fig, axes = plt.subplots(2, 2, figsize=[11, 8], layout="constrained")
+            sns.lineplot(data=block_leaves.reset_index(), x='day', y='leave time', hue='block', ax=axes[0, 0],
+                         palette='Set2')
+            add_h_lines(data=block_leaves.reset_index(), x='day', y='leave time', hue='block', ax=axes[0, 0],
+                        palette='Set2')
+            sns.lineplot(data=consumption.reset_index(), x='day', y='consumption time', hue='port', ax=axes[0, 1],
+                         palette='Set1', estimator=np.median)
+            add_h_lines(data=consumption.reset_index(), x='day', y='consumption time', hue='port', ax=axes[0, 1],
+                        palette='Set1', estimator='median')
+            sns.lineplot(data=engaged.reset_index(), x='day', y='reward rate', hue='block', ax=axes[1, 0],
+                         palette='Set2')
+            add_h_lines(data=engaged.reset_index(), x='day', y='reward rate', hue='block', ax=axes[1, 0],
+                        palette='Set2')
+            sns.lineplot(data=engaged.reset_index(), x='day', y='percent engaged', hue='block', ax=axes[1, 1],
+                         palette='Set2')
+            add_h_lines(data=engaged.reset_index(), x='day', y='percent engaged', hue='block', ax=axes[1, 1],
+                        palette='Set2')
+
+            axes[0, 0].set_title('Leave Time by Block')
+            axes[0, 1].set_title('Consumption Time by Port')
+            axes[1, 0].set_title('Reward Rate by Block')
+            axes[1, 1].set_title('Percent Time Engaged by Block')
+
+
+            axes[0, 0].set_ylim([0, 20])
+            axes[0, 1].set_ylim([0, 20])
+            axes[1, 0].set_ylim([0, .65])
+            axes[1, 1].set_ylim([0, 1])
+            plt.suptitle(mouse, fontsize=20)
+            plt.show()
 
         block_leaves_last10_df = block_leaves[(block_leaves.day >= block_leaves.day.max() - 10)].groupby('block')[
             'leave time'].mean().reset_index()
@@ -414,15 +475,24 @@ def simple_plots():
                  color='darkgray')
     plt.show()
 
-
-def single_session():
-    data = gen_data(get_today_filepaths(days_back=80))
+def single_session(select_mouse=None, num_back=5):
+    if select_mouse is None:
+        dif = date.today() - start_date
+        data = gen_data(get_today_filepaths(days_back=dif.days), select_mouse=select_mouse)
+        info = gen_data(get_today_filepaths(days_back=dif.days), select_mouse=select_mouse, return_info=True)
+    else:
+        data = gen_data(get_today_filepaths(days_back=1000), select_mouse=select_mouse)
+        info = gen_data(get_today_filepaths(days_back=1000), select_mouse=select_mouse, return_info=True)
     for mouse in data.keys():
-        last_session = data[mouse][-18]
-        session_summary(last_session, mouse)
+        if select_mouse is not None and mouse not in select_mouse:
+            continue
+        for i in range(1, num_back + 1):
+            last_session = data[mouse][-i]
+            last_info = info[mouse][-i]
+            session_summary(last_session, mouse, last_info)
 
 
-def session_summary(data, mouse):
+def session_summary(data, mouse, info):
     fig, [ax1, ax2] = plt.subplots(1, 2, figsize=[10, 10])
     port_palette = sns.color_palette('Set1')
     block_palette = sns.color_palette('Set2')
@@ -519,7 +589,7 @@ def session_summary(data, mouse):
     ax2.eventplot(exp_lick_events, color=light, linelengths=.25, lineoffsets=offsets)
 
     session_summary_axis_settings([ax1, ax2], max_trial)
-    plt.suptitle(mouse)
+    plt.suptitle(f'{mouse}: {info["date"]} {info["time"]}')
     plt.show()
 
 
@@ -538,5 +608,6 @@ def session_summary_axis_settings(axes, max_trial):
 
 
 if __name__ == '__main__':
-    simple_plots()
-    # single_session()
+    mice = ['ES037', 'ES039', 'ES041', 'ES042', 'ES043', 'ES044', 'ES045', 'ES046', 'ES047']
+    simple_plots(mice)
+    # single_session(mice)
