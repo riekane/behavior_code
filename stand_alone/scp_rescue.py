@@ -1,6 +1,6 @@
 from support_classes import scp, ssh
 import os
-from user_info import get_user_info
+from user_settings import get_user_info
 
 info_dict = get_user_info()
 

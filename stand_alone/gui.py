@@ -9,7 +9,7 @@ import pickle
 from time import sleep
 from main import *
 import pexpect
-from user_info import get_user_info
+from user_settings import get_user_info
 
 info_dict = get_user_info()
 

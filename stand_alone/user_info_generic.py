@@ -1,7 +1,7 @@
 import os
 
 """
-Copy this file to a new one with the name 'user_info.py' in the same folder location as this one. Replace all BOLD_CASE
+Copy this file to a new one with the name 'user_settings.py' in the same folder location as this one. Replace all BOLD_CASE
 variables with your own. GOOD LUCK!
 """
 
