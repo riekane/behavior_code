@@ -16,6 +16,10 @@ def get_user_info():
             'MOUSE_NAME': 'TASK_NAME',
             'testmouse': 'TASK_NAME',
         },
+        'mouse_colors': {
+            'MOUSE_NAME': 1,
+            'testmouse': 1,
+        },
         'desktop_ip': 'PUT_IP_ADDRESS_HERE',
         'desktop_user': 'PUT_USERNAME_HERE',
         'desktop_password': 'PUT_PASSWORD_HERE',
