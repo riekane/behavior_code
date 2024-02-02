@@ -181,7 +181,6 @@ def get_entry_exit(df, trial):
     if len(bg_exits) == 0 or bg_entries[-1] > bg_exits[-1]:
         bg_entries = np.concatenate([bg_exits, [trial_middle]])
 
-
     if not (len(exp_entries) == 0 and len(exp_exits) == 0):
         if len(exp_entries) == 0:
             exp_entries = np.concatenate([[trial_middle], exp_entries])
@@ -205,7 +204,11 @@ def get_entry_exit(df, trial):
             early_exp_exits = np.concatenate([early_exp_exits, [trial_middle]])
 
     if len(bg_entries) != len(bg_exits):
-        print()
+        print(trial)
+        if bg_exits[0] < bg_entries[0]:
+            bg_exits = bg_exits[1:]
+        elif bg_entries[-1] > bg_exits[-1]:
+            bg_entries = bg_entries[:-1]
     if len(exp_entries) != len(exp_exits):
         print()
     if len(early_exp_entries) != len(early_exp_exits):
@@ -297,22 +300,44 @@ def percent_engaged(df):
     return engaged_df
 
 
+def reentry_index(df):
+    is_bg_exit = (df.port == 2) & (df.key == 'head') & (df.value == 0)
+    is_slow_block = df.groupby('trial').phase.agg(pd.Series.mode) == '0.4'
+    is_fast_block = df.groupby('trial').phase.agg(pd.Series.mode) == '0.8'
+    num_ideal_bg_entry_slow = len(np.unique(df.trial.dropna())[is_slow_block])
+    num_bg_entry_slow = len(df.index[is_bg_exit & df.trial.isin(
+        np.unique(df.trial.dropna())[is_slow_block])])
+    num_ideal_bg_entry_fast = len(np.unique(df.trial.dropna())[is_fast_block])
+    num_bg_entry_fast = len(df.index[is_bg_exit & df.trial.isin(
+        np.unique(df.trial.dropna())[is_fast_block])])
+
+    reentry_index_slow = num_bg_entry_slow / num_ideal_bg_entry_slow
+    reentry_index_fast = num_bg_entry_fast / num_ideal_bg_entry_fast
+    reentry_df = pd.DataFrame()
+    reentry_df['block'] = ['0.4', '0.8']
+    reentry_df['bg_reentry_index'] = [reentry_index_slow, reentry_index_fast]
+    return reentry_df
+
+
 def add_h_lines(data=None, x=None, y=None, hue=None, ax=None, palette=None):
     palette = sns.color_palette(palette)
     for i, hue_key in enumerate(data[hue].unique()):
         df = data[data[hue] == hue_key]
-        if df[x].max() > 3:
-            hue_mean = df[(df[x] > df[x].max() - 3)][y].mean()
-            ax.hlines(hue_mean, 0, df[x].max(), palette[i], alpha=.5)
+        if df[x].max() > 10:
+            hue_mean = df[(df[x] > df[x].max() - 10)][y].mean()
+            ax.hlines(hue_mean, df[x].max() - 10, df[x].max(), palette[i], alpha=.5)
+
 
 
 def simple_plots():
     dif = date.today() - start_date
     data = gen_data(get_today_filepaths(days_back=dif.days))
+    block_leaves_last10 = pd.DataFrame()
     for mouse in data.keys():
         engaged = pd.DataFrame()
         consumption = pd.DataFrame()
         block_leaves = pd.DataFrame()
+        reentry = pd.DataFrame()
         for i, session in enumerate(data[mouse]):
             engaged_df = percent_engaged(session)
             engaged_df['day'] = [i] * len(engaged_df)
@@ -325,51 +350,75 @@ def simple_plots():
             block_leaves_df = block_leave_times(session)
             block_leaves_df['day'] = [i] * len(block_leaves_df)
             block_leaves = pd.concat([block_leaves, block_leaves_df])
+
+            reentry_df = reentry_index(session)
+            reentry_df['day'] = [i] * len(reentry_df)
+            reentry = pd.concat([reentry, reentry_df])
+
         engaged.sort_values('block', inplace=True)
         block_leaves.sort_values('block', inplace=True)
-        fig, axes = plt.subplots(2, 2, figsize=[11, 8], layout="constrained")
-        sns.lineplot(data=block_leaves.reset_index(), x='day', y='leave time', hue='block', ax=axes[0, 0],
-                     palette='Set2')
-        add_h_lines(data=block_leaves.reset_index(), x='day', y='leave time', hue='block', ax=axes[0, 0],
-                    palette='Set2')
-        sns.lineplot(data=consumption.reset_index(), x='day', y='consumption time', hue='port', ax=axes[0, 1],
-                     palette='Set1')
-        add_h_lines(data=consumption.reset_index(), x='day', y='consumption time', hue='port', ax=axes[0, 1],
-                    palette='Set1')
-        sns.lineplot(data=engaged.reset_index(), x='day', y='reward rate', hue='block', ax=axes[1, 0],
-                     palette='Set2')
-        add_h_lines(data=engaged.reset_index(), x='day', y='reward rate', hue='block', ax=axes[1, 0],
-                    palette='Set2')
-        sns.lineplot(data=engaged.reset_index(), x='day', y='percent engaged', hue='block', ax=axes[1, 1],
-                     palette='Set2')
-        add_h_lines(data=engaged.reset_index(), x='day', y='percent engaged', hue='block', ax=axes[1, 1],
-                    palette='Set2')
-
-        axes[0, 0].set_title('Leave Time by Block')
-        axes[0, 1].set_title('Consumption Time by Port')
-        axes[1, 0].set_title('Reward Rate by Block')
-        axes[1, 1].set_title('Percent Time Engaged by Block')
-
-        axes[0, 0].set_xlabel('session')
-        axes[0, 1].set_xlabel('session')
-        axes[1, 0].set_xlabel('session')
-        axes[1, 1].set_xlabel('session')
-        # axes[0, 0].set_ylim([0, axes[0, 0].get_ylim()[1]])
-        # axes[0, 1].set_ylim([0, axes[0, 1].get_ylim()[1]])
-        # axes[1, 0].set_ylim([0, axes[1, 0].get_ylim()[1]])
+        # fig, axes = plt.subplots(3, 2, figsize=[11, 12], layout="constrained")
+        # sns.lineplot(data=block_leaves.reset_index(), x='day', y='leave time', hue='block', ax=axes[0, 0],
+        #              palette='Set2')
+        # add_h_lines(data=block_leaves.reset_index(), x='day', y='leave time', hue='block', ax=axes[0, 0],
+        #             palette='Set2')
+        # sns.lineplot(data=consumption.reset_index(), x='day', y='consumption time', hue='port', ax=axes[0, 1],
+        #              palette='Set1')
+        # add_h_lines(data=consumption.reset_index(), x='day', y='consumption time', hue='port', ax=axes[0, 1],
+        #             palette='Set1')
+        # sns.lineplot(data=engaged.reset_index(), x='day', y='reward rate', hue='block', ax=axes[1, 0],
+        #              palette='Set2')
+        # add_h_lines(data=engaged.reset_index(), x='day', y='reward rate', hue='block', ax=axes[1, 0],
+        #             palette='Set2')
+        # sns.lineplot(data=engaged.reset_index(), x='day', y='percent engaged', hue='block', ax=axes[1, 1],
+        #              palette='Set2')
+        # add_h_lines(data=engaged.reset_index(), x='day', y='percent engaged', hue='block', ax=axes[1, 1],
+        #             palette='Set2')
+        # sns.lineplot(data=reentry.reset_index(), x='day', y='bg_reentry_index', hue='block', ax=axes[2, 0],
+        #              palette='Set2')
+        # add_h_lines(data=reentry.reset_index(), x='day', y='bg_reentry_index', hue='block', ax=axes[2, 0],
+        #             palette='Set2')
+        #
+        # axes[0, 0].set_title('Leave Time by Block')
+        # axes[0, 1].set_title('Consumption Time by Port')
+        # axes[1, 0].set_title('Reward Rate by Block')
+        # axes[1, 1].set_title('Percent Time Engaged by Block')
+        # axes[2, 0].set_title('Background Re-entry Index')
+        #
+        # axes[0, 0].set_xlabel('session')
+        # axes[0, 1].set_xlabel('session')
+        # axes[1, 0].set_xlabel('session')
+        # axes[1, 1].set_xlabel('session')
+        # axes[2, 0].set_xlabel('session')
+        # # axes[0, 0].set_ylim([0, axes[0, 0].get_ylim()[1]])
+        # # axes[0, 1].set_ylim([0, axes[0, 1].get_ylim()[1]])
+        # # axes[1, 0].set_ylim([0, axes[1, 0].get_ylim()[1]])
+        # # axes[1, 1].set_ylim([0, 1])
+        # axes[0, 0].set_ylim([0, 15])
+        # axes[0, 1].set_ylim([0, 15])
+        # axes[1, 0].set_ylim([0, .65])
         # axes[1, 1].set_ylim([0, 1])
-        axes[0, 0].set_ylim([0, 20])
-        axes[0, 1].set_ylim([0, 20])
-        axes[1, 0].set_ylim([0, .65])
-        axes[1, 1].set_ylim([0, 1])
-        plt.suptitle(mouse, fontsize=20)
-        plt.show()
+        # axes[2, 0].set_ylim([0.98, 3])
+        # plt.suptitle(mouse, fontsize=20)
+        # plt.show()
+
+        block_leaves_last10_df = block_leaves[(block_leaves.day >= block_leaves.day.max() - 10)].groupby('block')[
+            'leave time'].mean().reset_index()
+        block_leaves_last10_df['animal'] = mouse
+        block_leaves_last10 = pd.concat([block_leaves_last10, block_leaves_last10_df])
+
+    fig, axes = plt.subplots(1, 1)
+    sns.boxplot(data=block_leaves_last10.reset_index(), x='block', y='leave time', fill=False)
+    for mouse in data.keys():
+        plt.plot([-0.1, 0.9], block_leaves_last10[block_leaves_last10.animal == mouse]['leave time'], 'o-',
+                 color='darkgray')
+    plt.show()
 
 
 def single_session():
-    data = gen_data(get_today_filepaths(days_back=5))
+    data = gen_data(get_today_filepaths(days_back=80))
     for mouse in data.keys():
-        last_session = data[mouse][-1]
+        last_session = data[mouse][-18]
         session_summary(last_session, mouse)
 
 
@@ -490,4 +539,4 @@ def session_summary_axis_settings(axes, max_trial):
 
 if __name__ == '__main__':
     simple_plots()
-    single_session()
+    # single_session()
