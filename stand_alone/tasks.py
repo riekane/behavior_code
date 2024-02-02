@@ -418,7 +418,7 @@ def cued_forgo_task(task_shell, step_size=.1):
                 if port.dist_info['distribution'] == exp_decreasing:
                     if exp_taken and (time.time() - exp_start_time) // step_size > bin_num:
                         bin_num += 1
-                        if port.head_status == 1 and port.licked:
+                        if port.head_status == 1 and (port.licked or port.lick_status):
                             density_function = port.dist_info['distribution']
                             prob = density_function(time.time() - exp_start_time,
                                                     cumulative=port.dist_info['cumulative'],
