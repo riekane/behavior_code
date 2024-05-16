@@ -389,7 +389,7 @@ def merge_old_trials(session):
 
 
 def simple_plots(select_mouse=None):
-    plot_single_mouse_plots=True
+    plot_single_mouse_plots = True
     if select_mouse is None:
         dif = date.today() - start_date
         data = gen_data(get_today_filepaths(days_back=dif.days), select_mouse=select_mouse)
@@ -455,7 +455,6 @@ def simple_plots(select_mouse=None):
             axes[1, 0].set_title('Reward Rate by Block')
             axes[1, 1].set_title('Percent Time Engaged by Block')
 
-
             axes[0, 0].set_ylim([0, 20])
             axes[0, 1].set_ylim([0, 20])
             axes[1, 0].set_ylim([0, .65])
@@ -469,13 +468,14 @@ def simple_plots(select_mouse=None):
         block_leaves_last10 = pd.concat([block_leaves_last10, block_leaves_last10_df])
 
     fig, axes = plt.subplots(1, 1)
-    sns.boxplot(data=block_leaves_last10.reset_index(), x='block', y='leave time', fill=False)
+    sns.boxplot(data=block_leaves_last10.reset_index(), x='block', y='leave time')
     for mouse in data.keys():
         plt.plot([-0.1, 0.9], block_leaves_last10[block_leaves_last10.animal == mouse]['leave time'], 'o-',
                  color='darkgray')
     plt.show()
 
-def single_session(select_mouse=None, num_back=5):
+
+def single_session(select_mouse=None, num_back=2):
     if select_mouse is None:
         dif = date.today() - start_date
         data = gen_data(get_today_filepaths(days_back=dif.days), select_mouse=select_mouse)
@@ -608,6 +608,10 @@ def session_summary_axis_settings(axes, max_trial):
 
 
 if __name__ == '__main__':
-    mice = ['ES037', 'ES039', 'ES041', 'ES042', 'ES043', 'ES044', 'ES045', 'ES046', 'ES047']
+    # mice = ['ES057', 'ES058', 'ES059', 'ES060', 'ES061', 'ES062']
+    # mice = ['ES045', 'ES046', 'ES047', 'ES051', 'ES052', 'ES053', 'ES057', 'ES060', 'ES061', 'ES062']
+    # mice = ['ES058', 'ES059', 'ES045', 'ES047']
+    mice = ['ES057', 'ES046']
+    # mice = ['ES051', 'ES052', 'ES053', 'ES060', 'ES061', 'ES062']
     simple_plots(mice)
     # single_session(mice)
